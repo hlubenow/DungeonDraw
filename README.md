@@ -1,6 +1,6 @@
 ### DungeonDraw
 
-DungeonDraw 1.1 - A simple dungeon editor for role-playing games like for example "Dungeons & Dragons".
+DungeonDraw 1.1 - A simple dungeon editor in Python/Tkinter for role-playing games like for example "Dungeons & Dragons".
 
 Just draw your walls and doors on a grid (nothing more).
 
