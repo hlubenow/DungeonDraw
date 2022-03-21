@@ -9,7 +9,7 @@ If clicking the `.pyw`-file doesn't start the interpreter after installation, tr
 
 For support of the `Save Image` functionality, the `PIL-image-library` (today called [Pillow](https://pypi.org/project/Pillow/)) would be needed. If it's not installed, the script will still work, but `Save Image` will not be available. But of course, you still could use an external program for making and saving screenshots.
 
-In the program, available keys are: `w` Draw wall, `d` Draw door, `r` Remove drawings. The color of the cursor shows in which mode you're in.
+In the program, available keys are: `w` Draw wall, `d` Draw door, `r` Remove drawings. The color of the cursor showw, in which mode you're in.
 
 License: GNU GPL, version 3.
 
