@@ -1,4 +1,4 @@
-### DungeonDraw 1.1
+### DungeonDraw 1.2
 
 A simple dungeon editor in Python/Tkinter for role-playing games like for example "Dungeons & Dragons".
 
