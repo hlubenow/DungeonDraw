@@ -2,7 +2,7 @@
 # coding: utf-8
 
 """
-    DungeonDraw 1.1 - A simple dungeon editor for role-playing games.
+    DungeonDraw 1.2 - A simple dungeon editor for role-playing games.
 
     Copyright (C) 2022 Hauke Lubenow
 
@@ -446,7 +446,7 @@ class Main:
         self.button_down = False
 
     def showInfo(self):
-        m = "DungeonDraw 1.1\n\nA simple dungeon editor for\nrole-playing games.\n\nCopyright (C) 2022,\nHauke Lubenow\nLicense: GNU GPL, version 3."
+        m = "DungeonDraw 1.2\n\nA simple dungeon editor for\nrole-playing games.\n\nCopyright (C) 2022,\nHauke Lubenow\nLicense: GNU GPL, version 3."
         tkMessageBox.showinfo(title = "DungeonDraw", message = m)
 
 if __name__ == "__main__":
