@@ -11,4 +11,4 @@ For support of the `Save Image` functionality, the `PIL-image-library` (today ca
 
 License: GNU GPL, version 3.
 
-![DungeonDraw](https://github.com/hlubenow/dungeondraw.py/blob/main/dungeondraw.png)
+![DungeonDraw](https://github.com/hlubenow/DungeonDraw/blob/main/dungeondraw.png)
