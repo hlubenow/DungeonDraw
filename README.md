@@ -1,4 +1,4 @@
-### dungeondraw.py
+### DungeonDraw
 
 DungeonDraw 1.1 - A simple dungeon editor for role-playing games like for example "Dungeons & Dragons".
 
