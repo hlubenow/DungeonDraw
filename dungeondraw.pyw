@@ -181,6 +181,7 @@ class Main:
         self.board                 = Board()
         self.canvassize            = (2 * self.board.border + self.board.lines_xnr * self.board.linesize,
                                       2 * self.board.border + self.board.lines_ynr * self.board.linesize)
+        self.setMeasuringTapeCoordinates()
         self.wallwidth             = 4
         self.doorovalsize          = 4
         self.drawmode              = "wall"
@@ -318,7 +319,6 @@ class Main:
         if not filename:
             return
         # Using PIL to redraw the image on the Canvas:
-        measuring = self.getCoordsForGrey()
         colors = {"lightgrey" : (192, 192, 192),
                   "grey"      : (80, 80, 80),
                   "black"     : (0, 0, 0),
@@ -339,7 +339,7 @@ class Main:
             if line.state == "door":
                 draw.ellipse(self.getOvalCoords(line), fill = None, outline = colors[line.color])
 
-            if self.lineIsGrey(line, measuring):
+            if self.lineIsGrey(line):
                 draw.line(xy = (line.p1[0], line.p1[1], line.p2[0], line.p2[1]),
                                 width = lwidth,
                                 fill = colors["grey"])
@@ -353,7 +353,7 @@ class Main:
         for i in self.board.lines:
             self.drawLine(i)
 
-    def getCoordsForGrey(self):
+    def setMeasuringTapeCoordinates(self):
         boxdivision = 10
         vx = []
         hy = []
@@ -361,33 +361,20 @@ class Main:
             vx.append(self.board.border + (i + 1) * boxdivision * self.board.linesize)
         for i in range(self.board.lines_ynr / boxdivision):
             hy.append(self.canvassize[1] - (self.board.border + (i + 1) * boxdivision * self.board.linesize))
-        return {"horizontal" : {"x" : self.canvassize[0] - self.board.border - self.board.linesize,
-                                "y" : hy},
-                "vertical"   : {"x" : vx,
-                                "y" : self.canvassize[1] - self.board.border - self.board.linesize}}
+        self.measuringtape = {"horizontal" : {"x" : (self.board.border, self.canvassize[0] - self.board.border - self.board.linesize),
+                                              "y" : hy},
+                              "vertical"   : {"x" : vx,
+                                              "y" : (self.board.border, self.canvassize[1] - self.board.border - self.board.linesize)}}
 
-    def lineIsGrey(self, line, measuring):
-        grey = False
-        if line.orientation == "vertical":
-            for i in measuring[line.orientation]["x"]:
-                # Right x-value?
-                if line.p1[0] == i:
-                    # Right y-value?
-                    if line.p1[1] == self.board.border or line.p1[1] == measuring[line.orientation]["y"]:
-                        grey = True
-        if line.orientation == "horizontal":
-            for i in measuring[line.orientation]["y"]:
-                # Right y-value?
-                if line.p1[1] == i:
-                    # Right x-value?
-                    if line.p1[0] == self.board.border or line.p1[0] == measuring[line.orientation]["x"]:
-                        grey = True
-        return grey
+    def lineIsGrey(self, line):
+        if line.p1[0] in self.measuringtape[line.orientation]["x"] and line.p1[1] in self.measuringtape[line.orientation]["y"]:
+            return True
+        else:
+            return False
  
     def drawGrid(self):
-        measuring = self.getCoordsForGrey()
         for line in self.board.lines:
-            if self.lineIsGrey(line, measuring):
+            if self.lineIsGrey(line):
                 self.cv.create_line(line.p1, line.p2, width = 2, fill = 'grey')
             else:
                 # The ordinary lightgrey lines of the grid:
