@@ -181,6 +181,7 @@ class Main:
         self.board                 = Board()
         self.canvassize            = (2 * self.board.border + self.board.lines_xnr * self.board.linesize,
                                       2 * self.board.border + self.board.lines_ynr * self.board.linesize)
+        self.drawMeasuringTapeWithPIL = True
         self.setMeasuringTapeCoordinates()
         self.wallwidth             = 4
         self.doorovalsize          = 4
@@ -339,7 +340,7 @@ class Main:
             if line.state == "door":
                 draw.ellipse(self.getOvalCoords(line), fill = None, outline = colors[line.color])
 
-            if self.lineIsGrey(line):
+            if self.drawMeasuringTapeWithPIL and self.lineIsGrey(line):
                 draw.line(xy = (line.p1[0], line.p1[1], line.p2[0], line.p2[1]),
                                 width = lwidth,
                                 fill = colors["grey"])
