@@ -2,7 +2,7 @@
 # coding: utf-8
 
 """
-    DungeonDraw 1.2 - A simple dungeon editor for role-playing games.
+    DungeonDraw 1.3 - A simple dungeon editor for role-playing games.
 
     Copyright (C) 2022 Hauke Lubenow
 
@@ -20,9 +20,9 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import Tkinter as tk
-import tkMessageBox
-import tkFileDialog
+import tkinter as tk
+import tkinter.messagebox as tkmessagebox
+import tkinter.filedialog as tkfiledialog
 
 # Check, if PIL is available:
 SAVEIMAGESTATE = tk.ACTIVE
@@ -33,7 +33,7 @@ except:
 
 import os
 
-FONT = ("Arial", 14)
+FONT = ("Calibri", 10)
 
 FILEDIR = os.getcwd()
 
@@ -43,7 +43,7 @@ class Board:
         self.border    = 20
         self.lines_xnr = 50
         self.lines_ynr = 25
-        self.linesize  = 23
+        self.linesize  = 16
         self.buildLines()
 
     def buildLines(self):
@@ -159,20 +159,13 @@ class Line:
         else:
             self.color = "lightgrey"
 
-    def showState(self):
-        print self.state
-        print self.cursor
-        print self.color
-        print
-
-
 class Main:
 
     def __init__(self):
 
         self.mw = tk.Tk()
         self.mw.option_add("*font", FONT)
-        self.mw.geometry("1200x650+40+0")
+        # self.mw.geometry("1000x650+0+0")
         self.mw.title("DungeonDraw")
         self.mw.bind(sequence = "<Control-q>", func = lambda e: self.mw.destroy())
         self.mw.bind(sequence = "<w>", func = lambda e: self.setDrawMode("wall"))
@@ -269,17 +262,17 @@ class Main:
             self.drawLine(self.currentline)
 
     def new(self):
-        answer = tkMessageBox.askyesno(title = "Clear grid?", message = "Are you sure?")
+        answer = tkmessagebox.askyesno(title = "Clear grid?", message = "Are you sure?")
         if answer == True:
             self.board.clear()
             self.updateBoard()
 
     def load(self):
-        filename = tkFileDialog.askopenfilename(initialdir = FILEDIR,
+        filename = tkfiledialog.askopenfilename(initialdir = FILEDIR,
                                                 filetypes = (("map files","*.map"),))
         if not filename:
             a = "Nothing loaded."
-            tkMessageBox.showwarning(title = a, message = a)
+            tkmessagebox.showwarning(title = a, message = a)
             return
         fh = open(filename, "r")
         data = fh.read()
@@ -288,13 +281,15 @@ class Main:
         self.updateBoard()
 
     def getSaveName(self, initdir, filetypes):
-        filename = tkFileDialog.asksaveasfilename(initialdir = initdir,
+        filename = tkfiledialog.asksaveasfilename(initialdir = initdir,
                                                   filetypes = filetypes)
         if not filename:
             a = "Nothing saved."
-            tkMessageBox.showwarning(title = a, message = a)
+            tkmessagebox.showwarning(title = a, message = a)
             return None
-
+        suf = filetypes[0][1][1:5]
+        if not filename.endswith(suf):
+            filename += suf
         return filename
 
     def saveAs(self):
@@ -358,9 +353,9 @@ class Main:
         boxdivision = 10
         vx = []
         hy = []
-        for i in range(self.board.lines_xnr / boxdivision - 1):
+        for i in range(int(self.board.lines_xnr / boxdivision - 1)):
             vx.append(self.board.border + (i + 1) * boxdivision * self.board.linesize)
-        for i in range(self.board.lines_ynr / boxdivision):
+        for i in range(int(self.board.lines_ynr / boxdivision)):
             hy.append(self.canvassize[1] - (self.board.border + (i + 1) * boxdivision * self.board.linesize))
         self.measuringtape = {"horizontal" : {"x" : (self.board.border, self.canvassize[0] - self.board.border - self.board.linesize),
                                               "y" : hy},
@@ -459,8 +454,8 @@ class Main:
         self.button_down = False
 
     def showInfo(self):
-        m = "DungeonDraw 1.2\n\nA simple dungeon editor for\nrole-playing games.\n\nCopyright (C) 2022,\nHauke Lubenow\nLicense: GNU GPL, version 3."
-        tkMessageBox.showinfo(title = "DungeonDraw", message = m)
+        m = "DungeonDraw 1.3\n\nA simple dungeon editor for\nrole-playing games.\n\nCopyright (C) 2022,\nHauke Lubenow\nLicense: GNU GPL, version 3."
+        tkmessagebox.showinfo(title = "DungeonDraw", message = m)
 
 if __name__ == "__main__":
    app = Main()
