@@ -1,6 +1,6 @@
 ### DungeonDraw 1.2
 
-This is the older release. If you use Windows 10, use version 1.3 in the main directory above instead.
+This is the older release with the old description. If you use Windows 10, use version 1.3 in the main directory above instead.
 
 A simple dungeon editor in Python/Tkinter for role-playing games like for example "Dungeons & Dragons".
 
@@ -14,5 +14,3 @@ For support of the `Save Image` functionality, the `PIL-image-library` (today ca
 In the program, available keys are: `w` Draw wall, `d` Draw door, `r` Remove drawings. The color of the cursor shows, in which mode you're in.
 
 License: GNU GPL, version 3.
-
-![DungeonDraw](https://github.com/hlubenow/DungeonDraw/blob/main/dungeondraw.png)
