@@ -1,5 +1,7 @@
 ### DungeonDraw 1.2
 
+This is the older release. If you use Windows 10, use version 1.3 in the main directory above instead.
+
 A simple dungeon editor in Python/Tkinter for role-playing games like for example "Dungeons & Dragons".
 
 Just draw your walls and doors on a grid (nothing more).
