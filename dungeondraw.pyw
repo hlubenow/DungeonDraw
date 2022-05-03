@@ -2,8 +2,7 @@
 # coding: utf-8
 
 """
-    DungeonDraw 1.3 - A simple dungeon editor for role-playing games.
-
+    DungeonDraw 1.5 - A simple dungeon editor for role-playing games.
     Copyright (C) 2022 Hauke Lubenow
 
     This program is free software: you can redistribute it and/or modify
@@ -24,18 +23,22 @@ import tkinter as tk
 import tkinter.messagebox as tkmessagebox
 import tkinter.filedialog as tkfiledialog
 
-# Check, if PIL is available:
-SAVEIMAGESTATE = tk.ACTIVE
-try:
-    from PIL import Image, ImageDraw
-except:
-    SAVEIMAGESTATE = tk.DISABLED
+from PIL import Image, ImageDraw
 
 import os
 
+FILEDIR = os.getcwd()
+
 FONT = ("Calibri", 10)
 
-FILEDIR = os.getcwd()
+COLORS = {"wall"      : "black",
+          "door"      : "#c000c0",
+          "empty"     : "lightgrey",
+          "measuring" : "grey",
+          "stairs"    : "black",
+          "poi"       : "#00c000"}
+
+CR = '\r\n'
 
 class Board:
 
@@ -43,7 +46,7 @@ class Board:
         self.border    = 20
         self.lines_xnr = 50
         self.lines_ynr = 25
-        self.linesize  = 16
+        self.linesize  = 22
         self.buildLines()
 
     def buildLines(self):
@@ -55,9 +58,13 @@ class Board:
                 nr += 1
                 self.lines.append(Line(nr, x, y, "vertical", self))
                 nr += 1
-            self.lines.append(Line(nr, self.lines_xnr, y, "vertical", self))
+            # Last column of grid:
+            l = Line(nr, self.lines_xnr, y, "vertical", self)
+            l.setLast()
+            self.lines.append(l)
             nr += 1
 
+        # Last row of grid:
         for x in range(self.lines_xnr):
             self.lines.append(Line(nr, x, self.lines_ynr, "horizontal", self))
             nr += 1
@@ -99,20 +106,34 @@ class Board:
 
     def clear(self):
         for i in self.lines:
-            i.cursor = False
             i.setState("empty")
+            i.clearAttachment()
 
     def collectData(self):
         states = ("empty", "wall", "door")
         data = ""
         for i in self.lines:
-            data += str(states.index(i.state))
+            n = states.index(i.state)
+            if i.attachment:
+                if i.attachment.name == "stairs":
+                    n += 3
+                else:
+                    n += 6
+            n = str(n)
+            data += n
         return data
 
-    def pokeInData(self, data):
+    def pokeInData(self, data, canvas):
         states = ("empty", "wall", "door")
         for i in range(len(self.lines)):
-            self.lines[i].setState(states[int(data[i:i+1])])
+            n = int(data[i:i+1])
+            if n >= 3 and n <= 5:
+                self.lines[i].addAttachment("stairs", canvas)
+                n -= 3
+            if n >= 6:
+                self.lines[i].addAttachment("poi", canvas)
+                n -= 6
+            self.lines[i].setState(states[n])
 
 class Line:
 
@@ -120,10 +141,10 @@ class Line:
         self.nr = nr
         self.board = board
         self.orientation = orientation 
-        self.cursor = False
         self.state = "empty"
         self.canvasobjects = []
-        self.cursorobjects = []
+        self.attachment = None
+        self.lastcolumn = False
         self.setColor()
         border = self.board.border
         width  = self.board.linesize
@@ -134,30 +155,113 @@ class Line:
         if self.orientation == "vertical":
             self.p2 = (self.p1[0], self.p1[1] + height)
 
+    def addAttachment(self, name, canvas):
+        if self.orientation == "horizontal":
+            return
+        if self.lastcolumn:
+            return
+        if self.attachment:
+            if self.attachment.name == name:
+                return
+            self.clearAttachment()
+        if name == "stairs":
+            self.attachment = Stairs(name, canvas, self)
+        if name == "poi":
+            self.attachment = PointOfInterest(name, canvas, self)
+
+    def drawAttachment(self, mode, pildraw):
+        if not self.attachment:
+            return
+        self.attachment.draw(mode, pildraw)
+
+    def clearAttachment(self):
+        if not self.attachment:
+            return
+        self.attachment.remove()
+        self.attachment = None
+
     def addCanvasObject(self, id):
         self.canvasobjects.append(id)
 
-    def addCursorObject(self, id):
-        self.cursorobjects.append(id)
+    def setLast(self):
+        self.lastcolumn = True
 
     def setState(self, state):
         self.state = state
         self.setColor()
 
-    def cursorOn(self):
-        self.cursor = True
-
-    def cursorOff(self):
-        self.cursor = False
-
     def setColor(self):
-        if self.state == "wall":
-            self.color = "black"
-        elif self.state == "door":
-            # ZX Spectrum Magenta:
-            self.color = "#c000c0"
+        self.color = COLORS[self.state]
+
+
+class Attachment:
+
+    def __init__(self, name, canvas, line):
+        self.name = name
+        self.canvas = canvas
+        self.line = line
+        self.canvasobjects = []
+
+    def remove(self):
+        for i in self.canvasobjects:
+            self.canvas.delete(i)
+
+class Stairs(Attachment):
+
+    def __init__(self, name, canvas, line):
+        Attachment.__init__(self, name, canvas, line)
+
+    def draw(self, mode, pildraw):
+        for i in range(0, 501, 250):
+            stairs_p1 = (self.line.p1[0] + self.line.board.linesize // 4,
+                         self.line.p1[1] + self.line.board.linesize // 4 + i / 1000. * self.line.board.linesize)
+            stairs_p2 = (self.line.p1[0] + self.line.board.linesize * 3 // 4,
+                         stairs_p1[1])
+            self.createLine(stairs_p1, stairs_p2, mode, pildraw)
+
+    def createLine(self, stairs_p1, stairs_p2, mode, pildraw):
+        if mode == "tk":
+            self.canvasobjects.append(self.canvas.create_line(stairs_p1, stairs_p2, width = 2, fill = COLORS["stairs"]))
         else:
-            self.color = "lightgrey"
+            pildraw.line(xy = (stairs_p1[0], stairs_p1[1], stairs_p2[0], stairs_p2[1]), width = 2, fill = (0, 0, 0))
+
+
+class PointOfInterest(Attachment):
+
+    def __init__(self, name, canvas, line):
+        Attachment.__init__(self, name, canvas, line)
+
+    def draw(self, mode, pildraw):
+        poi_p1 = (self.line.p1[0] + self.line.board.linesize // 4,
+                  self.line.p1[1] + self.line.board.linesize // 4)
+        poi_p2 = (self.line.p1[0] + self.line.board.linesize * 3 // 4,
+                  self.line.p1[1] + self.line.board.linesize * 3 // 4)
+ 
+        if mode == "tk":
+            self.canvasobjects.append(self.canvas.create_oval(poi_p1, poi_p2, width = 3, fill = COLORS["poi"], outline = COLORS["poi"]))
+        else:
+            green = (0, 192, 0)
+            pildraw.ellipse((poi_p1[0], poi_p1[1], poi_p2[0], poi_p2[1]), fill = green, outline = green)
+
+class Cursor:
+
+    def __init__(self, wallwidth, canvas):
+        self.wallwidth    = wallwidth
+        self.canvas       = canvas
+        self.canvasobject = None
+
+    def show(self, currentline, drawmode):
+        self.color = "blue"
+        if drawmode == "delete":
+            self.color = "cyan"
+        self.canvasobject = self.canvas.create_line(currentline.p1,
+                                                    currentline.p2,
+                                                    width = self.wallwidth,
+                                                    fill = self.color)
+    def setOff(self):
+        self.canvas.delete(self.canvasobject)
+        self.canvasobject = None
+
 
 class Main:
 
@@ -165,28 +269,23 @@ class Main:
 
         self.mw = tk.Tk()
         self.mw.option_add("*font", FONT)
-        # self.mw.geometry("1000x650+0+0")
+        self.mw.geometry("1200x650+20+0")
         self.mw.title("DungeonDraw")
         self.mw.bind(sequence = "<Control-q>", func = lambda e: self.mw.destroy())
         self.mw.bind(sequence = "<w>", func = lambda e: self.setDrawMode("wall"))
         self.mw.bind(sequence = "<d>", func = lambda e: self.setDrawMode("door"))
-        self.mw.bind(sequence = "<r>", func = lambda e: self.setDrawMode("empty"))
-        self.board                 = Board()
+        self.mw.bind(sequence = "<r>", func = lambda e: self.setDrawMode("delete"))
+        self.board = Board()
         self.canvassize            = (2 * self.board.border + self.board.lines_xnr * self.board.linesize,
                                       2 * self.board.border + self.board.lines_ynr * self.board.linesize)
-        self.drawMeasuringTapeWithPIL = True
+        self.drawMeasuringTapeWithPIL = False
         self.setMeasuringTapeCoordinates()
         self.wallwidth             = 4
         self.doorovalsize          = 4
         self.drawmode              = "wall"
         self.currentline           = None
-        self.previousline          = None
         self.previousmouseposition = (0, 0)
         self.button_down           = False
-        self.cursorcolors  = {"wall" : "blue",
-                              "door" : "#c000c0",
-                              "empty": "cyan"}
-
         self.menubar = tk.Frame(self.mw, relief = tk.RIDGE, bd = 5);
         self.mb_file = tk.Menubutton(self.menubar, text = "File")
         self.mb_draw = tk.Menubutton(self.menubar, text = "Draw")
@@ -205,9 +304,8 @@ class Main:
                                       label = "Save as Data",
                                       command = self.saveAs)
         self.menu_file.insert_command(3,
-                                      label   = "Save Image",
-                                      command = self.saveImage,
-                                      state   = SAVEIMAGESTATE)
+                                      label = "Save Image",
+                                      command = self.saveImage)
         self.menu_file.insert_separator(4)
         self.menu_file.insert_command(5, label = "Exit", command = self.mw.destroy)
         self.mb_file.config(menu = self.menu_file)
@@ -220,10 +318,16 @@ class Main:
         self.menu_draw.insert_command(1,
                                       label = "Door",
                                       command = lambda : self.setDrawMode("door"))
-        self.menu_draw.insert_separator(2)
+        self.menu_draw.insert_command(2,
+                                      label = "Stairs",
+                                      command = lambda : self.setDrawMode("stairs"))
         self.menu_draw.insert_command(3,
+                                      label = "Point of Interest",
+                                      command = lambda : self.setDrawMode("poi"))
+        self.menu_draw.insert_separator(4)
+        self.menu_draw.insert_command(5,
                                       label = "Remove",
-                                      command = lambda : self.setDrawMode("empty"))
+                                      command = lambda : self.setDrawMode("delete"))
         self.mb_draw.config(menu = self.menu_draw)
 
         self.menubar.pack(side = tk.TOP, fill = tk.X)
@@ -231,35 +335,36 @@ class Main:
         self.mb_draw.pack(side = tk.LEFT, padx = 20)
         self.mb_info.pack(side = tk.RIGHT, padx = 10)
 
-        self.cv = tk.Canvas(self.mw,
+        self.canvas = tk.Canvas(self.mw,
                             bg     = "white",
                             width  = self.canvassize[0],
                             height = self.canvassize[1])
-        self.cv.pack()
+        self.canvas.pack()
 
-        self.cv.bind('<Motion>', self.mouseMovement)
-        self.cv.bind('<B1-Motion>', self.mouseMovementWithButton)
-        self.cv.bind('<ButtonRelease-1>', self.buttonReleased)
-        self.cv.bind('<Button-1>', self.mouseClick)
+        self.canvas.bind('<Motion>', self.mouseMovement)
+        self.canvas.bind('<B1-Motion>', self.mouseMovementWithButton)
+        self.canvas.bind('<ButtonRelease-1>', self.buttonReleased)
+        self.canvas.bind('<Button-1>', self.mouseClick)
         self.drawGrid()
+        self.cursor = Cursor(self.wallwidth, self.canvas)
         self.mw.mainloop()
 
     def setDrawMode(self, drawmode):
         self.drawmode = drawmode
-        # Make menu_draw-entry blue:
-        all = (0, 1, 3)
-        h = {"wall" : 0, "door" : 1, "empty" : 3}
+        self.makeMenuEntryBlue()
+
+    def makeMenuEntryBlue(self):
+        # Make the menu_draw-entry blue:
+        all = (0, 1, 2, 3, 5)
+        h = {"wall" : 0, "door" : 1, "stairs" : 2, "poi" : 3, "delete" : 5}
         black_letters = []
         for i in all:
             if i == h[self.drawmode]:
                 continue
             black_letters.append(i)
-        self.menu_draw.entryconfig(h[self.drawmode], foreground = self.cursorcolors[self.drawmode])
+        self.menu_draw.entryconfig(h[self.drawmode], foreground = 'blue')
         for i in black_letters:
             self.menu_draw.entryconfig(i, foreground = 'black')
-        # Redraw cursor in new color:
-        if self.currentline:
-            self.drawLine(self.currentline)
 
     def new(self):
         answer = tkmessagebox.askyesno(title = "Clear grid?", message = "Are you sure?")
@@ -271,13 +376,16 @@ class Main:
         filename = tkfiledialog.askopenfilename(initialdir = FILEDIR,
                                                 filetypes = (("map files","*.map"),))
         if not filename:
+            """
             a = "Nothing loaded."
             tkmessagebox.showwarning(title = a, message = a)
+            """
             return
         fh = open(filename, "r")
         data = fh.read()
         fh.close()
-        self.board.pokeInData(data)
+        data = data.rstrip(CR)
+        self.board.pokeInData(data, self.canvas)
         self.updateBoard()
 
     def getSaveName(self, initdir, filetypes):
@@ -291,7 +399,7 @@ class Main:
         if not filename.endswith(suf):
             filename += suf
         return filename
-
+ 
     def saveAs(self):
         filename = self.getSaveName(FILEDIR, (("map files", "*.map"),) )
         if not filename:
@@ -299,6 +407,7 @@ class Main:
         data = self.board.collectData()
         fh = open(filename, "w")
         fh.write(data)
+        fh.write(CR)
         fh.close()
 
     def getOvalCoords(self, line):
@@ -311,7 +420,6 @@ class Main:
 
     def saveImage(self):
         filename = self.getSaveName(FILEDIR, (("png files", "*.png"),) )
-        # filename = self.getSaveName(FILEDIR, (("jpg files", "*.jpg"),) )
         if not filename:
             return
         # Using PIL to redraw the image on the Canvas:
@@ -319,7 +427,9 @@ class Main:
                   "grey"      : (80, 80, 80),
                   "black"     : (0, 0, 0),
                   "#c000c0"   : (192, 0, 192),
-                  "white"     : (255, 255, 255)}
+                  "white"     : (255, 255, 255),
+                  "#00c000"   : (0, 192, 0)}
+
         image1 = Image.new("RGB", self.canvassize, colors["white"])
         draw   = ImageDraw.Draw(image1)
         for line in self.board.lines:
@@ -338,16 +448,19 @@ class Main:
             if self.drawMeasuringTapeWithPIL and self.lineIsGrey(line):
                 draw.line(xy = (line.p1[0], line.p1[1], line.p2[0], line.p2[1]),
                                 width = lwidth,
-                                fill = colors["grey"])
+                                fill = colors[line.color])
             else:
                 draw.line(xy = (line.p1[0], line.p1[1], line.p2[0], line.p2[1]),
                                 width = lwidth,
                                 fill = colors[line.color])
+            line.drawAttachment("pil", draw)
+
         image1.save(filename, "PNG")
 
     def updateBoard(self):
         for i in self.board.lines:
-            self.drawLine(i)
+            self.currentline = i
+            self.drawLine(i, "update")
 
     def setMeasuringTapeCoordinates(self):
         boxdivision = 10
@@ -367,72 +480,64 @@ class Main:
             return True
         else:
             return False
- 
+
     def drawGrid(self):
         for line in self.board.lines:
             if self.lineIsGrey(line):
-                self.cv.create_line(line.p1, line.p2, width = 2, fill = 'grey')
+                self.canvas.create_line(line.p1, line.p2, width = 2, fill = 'grey')
             else:
                 # The ordinary lightgrey lines of the grid:
-                self.cv.create_line(line.p1, line.p2, width = 2, fill = 'lightgrey')
+                self.canvas.create_line(line.p1, line.p2, width = 2, fill = 'lightgrey')
 
     def clearLine(self, line):
         for i in line.canvasobjects:
-            self.cv.delete(i)
+            self.canvas.delete(i)
         line.canvasobjects = []
 
-    def drawLine(self, line):
-
-        if line.cursor:
-            line.addCursorObject(self.cv.create_line(line.p1,
-                                                     line.p2,
-                                                     width = self.wallwidth,
-                                                     fill = self.cursorcolors[self.drawmode]))
+    def redrawCursor(self):
+        if not self.currentline:
             return
-        else:
-            for i in line.cursorobjects:
-                self.cv.delete(i)
-            line.cursorobjects = []
+        self.cursor.setOff()
+        self.cursor.show(self.currentline, self.drawmode) 
 
-        if line.state == "empty":
-            self.clearLine(line)
-            return
+    def drawLine(self, line, caller):
+
+        self.clearLine(line)
+        if caller != "update":
+            self.redrawCursor()
+
+        line.drawAttachment("tk", None)
 
         if line.state == "door":
-            self.clearLine(line)
             ids = []
             oc = self.getOvalCoords(line)
-            ids.append(self.cv.create_oval(oc[0], oc[1], width = 3, fill = '', outline = line.color))
-            # ids.append(self.cv.create_line(line.p1, line.p2, width = 4, fill = line.color))
+            ids.append(self.canvas.create_oval(oc[0], oc[1], width = 3, fill = '', outline = COLORS["door"]))
             for i in ids:
                 line.addCanvasObject(i)
 
         if line.state == "wall":
-            self.clearLine(line)
-            line.addCanvasObject(self.cv.create_line(line.p1, line.p2, width = self.wallwidth, fill = line.color))
+            line.addCanvasObject(self.canvas.create_line(line.p1, line.p2, width = self.wallwidth, fill = line.color))
+
 
     def mouseMovement(self, event):
         mouse_x, mouse_y = event.x, event.y
         if mouse_x <= self.board.border or mouse_x >= self.canvassize[0] - self.board.border or mouse_y <= self.board.border or mouse_y >= self.canvassize[1] - self.board.border:
-            if self.currentline:
-                self.currentline.cursorOff()
-                self.drawLine(self.currentline)
+            self.cursor.setOff()
             return
         self.currentline = self.board.getClosestLine(mouse_x, mouse_y)
-        if not self.previousline:
-            self.previousline = self.currentline
-        if self.currentline is not self.previousline:
-            self.previousline.cursorOff()
-            self.drawLine(self.previousline)
-            if not self.button_down:
-                self.currentline.cursorOn()
-                self.drawLine(self.currentline)
-            self.previousline = self.currentline
+        self.redrawCursor()
 
     def mouseClick(self, event):
-        self.currentline.setState(self.drawmode)
-        self.currentline.cursorOff()
-        self.drawLine(self.currentline)
+        # Do this, when mouse is clicked:
+        if self.drawmode in ("wall", "door"):
+            self.currentline.setState(self.drawmode)
+        if self.drawmode in ("stairs", "poi"):
+            self.currentline.addAttachment(self.drawmode, self.canvas)
+        if self.drawmode == "delete":
+            self.currentline.setState("empty")
+            self.currentline.clearAttachment()
+        self.drawLine(self.currentline, "mouseclick")
+        self.cursor.setOff()
 
     def mouseMovementWithButton(self, event):
         self.button_down = True
@@ -454,7 +559,7 @@ class Main:
         self.button_down = False
 
     def showInfo(self):
-        m = "DungeonDraw 1.3\n\nA simple dungeon editor for\nrole-playing games.\n\nCopyright (C) 2022,\nHauke Lubenow\nLicense: GNU GPL, version 3."
+        m = "DungeonDraw 1.5\n\nA simple dungeon editor for\nrole-playing games.\n\nCopyright (C) 2022,\nHauke Lubenow\nLicense: GNU GPL, version 3."
         tkmessagebox.showinfo(title = "DungeonDraw", message = m)
 
 if __name__ == "__main__":
