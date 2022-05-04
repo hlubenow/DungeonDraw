@@ -385,6 +385,7 @@ class Main:
         data = fh.read()
         fh.close()
         data = data.rstrip(CR)
+        self.board.clear()
         self.board.pokeInData(data, self.canvas)
         self.updateBoard()
 
