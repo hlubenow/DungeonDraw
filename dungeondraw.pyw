@@ -249,6 +249,11 @@ class Cursor:
         self.wallwidth    = wallwidth
         self.canvas       = canvas
         self.canvasobject = None
+        self.colors       = {"wall"   : "blue",
+                             "door"   : COLORS["door"],
+                             "stairs" : "blue",
+                             "poi"    : COLORS["poi"],
+                             "delete" : "cyan"}
 
     def show(self, currentline, drawmode):
         self.color = "blue"
@@ -257,7 +262,7 @@ class Cursor:
         self.canvasobject = self.canvas.create_line(currentline.p1,
                                                     currentline.p2,
                                                     width = self.wallwidth,
-                                                    fill = self.color)
+                                                    fill = self.colors[drawmode])
     def setOff(self):
         self.canvas.delete(self.canvasobject)
         self.canvasobject = None
