@@ -13,7 +13,7 @@ pip install Pillow
 ```
 In the program, available keys are: `w` Draw wall, `d` Draw door, `r` Remove drawings. The color of the cursor shows, in which mode you're in.
 
-There's also a feature called `FTP Upload`. If you have upload access to a FTP server somewhere on the internet, you can edit the beginning of the script and enter the access data for the server there. You'd also have to set the variable `VERSION` in the script to `private`. Then, when you select "FTP Upload" in the menu at runtime, the current dungeon image is saved to a file called
+There's also a feature called "FTP Upload". If you have upload access to a FTP server somewhere on the internet, you can edit the beginning of the script and enter the access data for the server there. You'd also have to set the variable `VERSION` in the script to `private`. Then, when you select "FTP Upload" in the menu at runtime, the current dungeon image is saved to a file called
 ```
 ./saves/dungeon.png
 ```
