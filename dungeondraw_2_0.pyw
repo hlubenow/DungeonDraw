@@ -2,7 +2,7 @@
 # coding: utf-8
 
 """
-    DungeonDraw 2.0 - A dungeon editor for role-playing games.
+    DungeonDraw 2.0 - A small dungeon editor for role-playing games.
     Copyright (C) 2022 Hauke Lubenow
 
     This program is free software: you can redistribute it and/or modify
