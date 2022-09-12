@@ -19,8 +19,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-# Set this to "private", if you want FTP-upload:
-VERSION = "public"
+FTP_ENABLED = False
 
 import tkinter as tk
 import tkinter.messagebox as tkmessagebox
@@ -28,7 +27,7 @@ import tkinter.filedialog as tkfiledialog
 
 from PIL import Image, ImageDraw
 
-if VERSION == "private":
+if FTP_ENABLED:
     import ftplib
 
 import os
@@ -39,10 +38,10 @@ import os
 FTP-access-data. Example:
 
 FTPSERVER    = "your-ftp-server.com"
-FTPDIRECTORY = "your-ftp-server.com"
+FTPDIRECTORY = "ftp-server-directory.com"
 FTPLOGIN     = ("username", "password")
 
-Now edit accordingly right here below, if you want FTP-upload:
+Now edit the lines accordingly right here below, if you want FTP-upload:
 """
 
 FTPSERVER    = ""
@@ -53,12 +52,12 @@ FONT = ("Calibri", 10)
 
 DRAW_MEASURING_TAPE_WITH_PIL = False
 
-if VERSION == "private":
-    # The private version automatically saves the image to "./saves/dungeon.py".
+if FTP_ENABLED:
+    # Automatically save images to "./saves/dungeon.py".
     FILEDIR   = os.path.join(os.getcwd(), "saves")
     IMAGEFILE = os.path.join(FILEDIR, "dungeon.png")
 else:
-    # The public version asks the user for the name of the imagefile:
+    # Ask the user for the name of the imagefile:
     FILEDIR   = os.getcwd()
     IMAGEFILE = ""
 
@@ -68,7 +67,7 @@ COLORS = {"tk"  : {"background"      : "white",
                    "empty"           : "lightgrey",
                    "measuring"       : "grey",
                    "wall"            : "black",
-                   "transparentwall" : "black",
+                   "transparentwall" : "#ff0000",
                    "door"            : "#c000c0",
                    "stairs"          : "black",
                    "circle_red"      : "#c00000",
@@ -79,7 +78,7 @@ COLORS = {"tk"  : {"background"      : "white",
                    "empty"           : (192, 192, 192),
                    "measuring"       : (80, 80, 80),
                    "wall"            : (0, 0, 0),
-                   "transparentwall" : (0, 0, 0),
+                   "transparentwall" : (255, 0, 0),
                    "door"            : (192, 0, 192),
                    "stairs"          : (0, 0, 0),
                    "circle_red"      : (192, 0, 0),
@@ -322,7 +321,7 @@ class Cursor:
         self.colors       = {"wall"            : "blue",
                              "door"            : COLORS["tk"]["door"],
                              "stairs"          : "blue",
-                             "transparentwall" : "blue",
+                             "transparentwall" : "red",
                              "remove"          : "cyan"}
         c = ("red", "green", "blue")
         for i in c:
@@ -358,7 +357,7 @@ class Main:
                                       2 * self.board.border + self.board.lines_ynr * self.board.linesize)
         self.setMeasuringTapeCoordinates()
         self.wallwidth             = 4
-        self.transparentwallwidth  = 3
+        self.transparentwallwidth  = 4
         self.doorovalsize          = 4
         self.drawmode              = "wall"
         self.currentline           = None
@@ -387,7 +386,7 @@ class Main:
         self.menu_file.insert_command(4, label = "FTP Upload", command = self.uploadToFTP)
         self.menu_file.insert_separator(5)
         self.menu_file.insert_command(6, label = "Exit", command = self.mw.destroy)
-        if VERSION != "private":
+        if not FTP_ENABLED:
             self.menu_file.entryconfig(4, state = tk.DISABLED)
         self.mb_file.config(menu = self.menu_file)
 
@@ -511,50 +510,59 @@ class Main:
             return ((line.p1[0] - self.doorovalsize, line.p1[1]),
                     (line.p2[0] + self.doorovalsize, line.p2[1]))
 
+    def drawPILLine(self, draw_, p1, p2, width, color):
+        p = (p1[0], p1[1], p2[0], p2[1])
+        draw_.line(xy = p, width = width, fill = color)
+
     def saveImage(self):
-        if VERSION == "public":
+        if not FTP_ENABLED:
             filename = self.getSaveName(FILEDIR, (("png files", "*.png"),) )
             if not filename:
                 return
         # Using PIL to redraw the image on the Canvas:
         image1 = Image.new("RGB", self.canvassize, COLORS["pil"]["background"])
-        draw = ImageDraw.Draw(image1)
-        for line in self.board.lines:
-            if line.state =="wall":
-                lwidth = self.wallwidth
-            elif line.state =="door":
-                if line.orientation == "horizontal":
-                    lwidth = 3
-                else:
-                    lwidth = 2
-            else:
-                lwidth = 1
-            if line.state == "door":
-                draw.ellipse(self.getOvalCoords(line), fill = None, outline = COLORS["pil"][line.state])
+        draw_ = ImageDraw.Draw(image1)
 
-            if DRAW_MEASURING_TAPE_WITH_PIL and line.state == "empty" and line.isgrey:
-                draw.line(xy = (line.p1[0], line.p1[1], line.p2[0], line.p2[1]),
-                                width = lwidth,
-                                fill = COLORS["pil"]["measuring"])
-            elif line.state in ("wall", "empty"):
-                draw.line(xy = (line.p1[0], line.p1[1], line.p2[0], line.p2[1]),
-                                width = lwidth,
-                                fill = COLORS["pil"][line.state])
+        for line in self.board.lines:
+
+            if line.state == "empty":
+                if DRAW_MEASURING_TAPE_WITH_PIL and line.isgrey:
+                    self.drawPILLine(draw_, line.p1, line.p2, 1, COLORS["pil"]["measuring"])
+                else:
+                    self.drawPILLine(draw_, line.p1, line.p2, 1, COLORS["pil"]["empty"])
+
+            if line.state == "wall":
+                self.drawPILLine(draw_, line.p1, line.p2, self.wallwidth, COLORS["pil"]["wall"])
+
+            if line.state == "door":
+                draw_.ellipse(self.getOvalCoords(line), fill = None, outline = COLORS["pil"]["door"])
+                if line.orientation == "horizontal":
+                    self.drawPILLine(draw_, line.p1, line.p2, 3, COLORS["pil"]["door"])
+                else:
+                    self.drawPILLine(draw_, line.p1, line.p2, 2, COLORS["pil"]["door"])
 
             if line.state == "transparentwall":
-                for i in line.lparts:
-                    draw.line(xy = (i[0][0], i[0][1], i[1][0], i[1][1]), width = 2, fill = COLORS["pil"][line.state])
+                for p in line.lparts:
+                    self.drawPILLine(draw_, p[0], p[1], 3, COLORS["pil"]["transparentwall"])
 
-            line.drawAttachment("pil", draw)
+            line.drawAttachment("pil", draw_)
 
-        if VERSION == "public":
-            image1.save(filename, "PNG")
-        else:
+        if FTP_ENABLED:
+
+            if not os.path.exists(FILEDIR):
+                answer = tkmessagebox.askyesno(title = "Create directory?", message = "Directory \"" + FILEDIR + "\" doesn't exist.\nCreate it and proceed?")
+                if not answer:
+                    a = "Nothing done."
+                    tkmessagebox.showwarning(title = a, message = a)
+                    return
+                os.mkdir(FILEDIR)
+
             image1.save(IMAGEFILE, "PNG")
+        else:
+            image1.save(filename, "PNG")
 
     def uploadToFTP(self):
-        if VERSION != "private":
-            # Shouldn't even get here, because menu entry should be disabled in public version:
+        if not FTP_ENABLED:
             return
         if FTPSERVER == "" or FTPDIRECTORY == "" or len(FTPLOGIN) < 2:
             tkmessagebox.showwarning(title = "FTP-data not found", message = "FTP-data not found. Nothing transmitted.\n\nTo use this feature, you have to edit the lines about the data for FTP access at the beginning of the script.\nAn example of the required format can be found there too.")
