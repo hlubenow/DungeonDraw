@@ -1,6 +1,6 @@
 ### DungeonDraw 2.0
 
-A small dungeon editor in Python/Tkinter for tabletop role-playing games like for example "Dungeons & Dragons".
+A small dungeon editor in Python/Tkinter for tabletop role-playing games like "Dungeons & Dragons".
 
 Draw your walls and doors on a grid.
 
