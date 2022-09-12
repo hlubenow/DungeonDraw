@@ -689,7 +689,7 @@ class Main:
         self.button_down = False
 
     def showInfo(self):
-        m = "DungeonDraw 2.0\n\nA simple dungeon editor for\nrole-playing games.\n\nCopyright (C) 2022,\nHauke Lubenow\nLicense: GNU GPL, version 3."
+        m = "DungeonDraw 2.0\n\nA small dungeon editor for\nrole-playing games.\n\nCopyright (C) 2022,\nHauke Lubenow\nLicense: GNU GPL, version 3."
         tkmessagebox.showinfo(title = "DungeonDraw", message = m)
 
 if __name__ == "__main__":
