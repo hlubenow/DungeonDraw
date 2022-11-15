@@ -498,7 +498,8 @@ class Main:
     def redrawCursor(self):
         if not self.currentline:
             return
-        """ Without these lines, the cursor would unnecessarily be redrawn,             if the mouse was moved, but the cursor still remained on the
+        """ Without these lines, the cursor would unnecessarily be redrawn,
+            if the mouse was moved, but the cursor still remained on the
             same line.
             The previous drawmode doesn't need to be checked, because
             to set a new drawmode, the cursor has to be moved up to the
