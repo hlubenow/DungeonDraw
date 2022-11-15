@@ -323,8 +323,8 @@ class Cursor:
                              "stairs"          : "blue",
                              "transparentwall" : "red",
                              "remove"          : "cyan"}
-        c = ("red", "green", "blue")
-        for i in c:
+        
+        for i in ("red", "green", "blue"):
             self.colors["circle_" + i] = COLORS["tk"]["circle_" + i]
 
     def show(self, currentline, drawmode):
@@ -361,6 +361,7 @@ class Main:
         self.doorovalsize          = 4
         self.drawmode              = "wall"
         self.currentline           = None
+        self.previouscursorlinenr  = None
         self.previousmouseposition = (0, 0)
         self.button_down           = False
         self.menubar = tk.Frame(self.mw, relief = tk.RIDGE, bd = 5);
@@ -622,8 +623,18 @@ class Main:
     def redrawCursor(self):
         if not self.currentline:
             return
+        """ Without these lines, the cursor would unnecessarily be redrawn,
+            if the mouse was moved, but the cursor still remained on the
+            same line.
+            The previous drawmode doesn't need to be checked, because
+            to set a new drawmode, the cursor has to be moved up to the 
+            menu anyway.
+        """
+        if self.previouscursorlinenr == self.currentline.nr:
+            return
         self.cursor.setOff()
         self.cursor.show(self.currentline, self.drawmode) 
+        self.previouscursorlinenr = self.currentline.nr
 
     def drawLine(self, line, caller):
 
