@@ -2,10 +2,10 @@
 # coding: utf-8
 
 """
-    DungeonDraw 2.0 - A small dungeon editor for role-playing games.
-                      Simplified version.
-
+    DungeonDraw 2.2 - A small dungeon editor for role-playing games.
     Copyright (C) 2022 Hauke Lubenow
+
+    Simplified version.
 
     This program is free software: you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published by
@@ -27,9 +27,12 @@ import tkinter.filedialog as tkfiledialog
 
 import os
 
-FONT = ("Calibri", 10)
+APPLICATIONFONT = ("Calibri", 10)
+LETTERFONT_TK   = ("Calibri", 12)
 
 FILEDIR   = os.getcwd()
+
+LINESEPARATOR = "\n"
 
 COLORS = {"tk"  : {"background"      : "white",
                    "empty"           : "lightgrey",
@@ -38,9 +41,10 @@ COLORS = {"tk"  : {"background"      : "white",
                    "transparentwall" : "#ff0000",
                    "door"            : "#c000c0",
                    "stairs"          : "black",
+                   "letter"          : "black",
                    "circle_red"      : "#c00000",
                    "circle_green"    : "#00c000",
-                   "circle_blue"     : "#0000c0"} }
+                   "circle_blue"     : "#0000c0"}}
 
 DRAWENTRIES = ("wall",
                "door",
@@ -51,6 +55,8 @@ DRAWENTRIES = ("wall",
                "circle_green",
                "circle_blue",
                "separator_2",
+               "letter",
+               "separator_3",
                "remove")
 
 class Board:
@@ -123,38 +129,32 @@ class Board:
             i.clearAttachment()
 
     def collectData(self):
-        # The len of states must be < 10, because 10-20 is already reserved 
-        # for combinations with the first attachment (which is "stairs"):
-        states = ("empty", "wall", "door", "transparentwall")
-        # +10 for stairs (code below):
-        additions  = {"red" : 20, "green" : 30, "blue" : 40}
+        # Data Format: "0,wall", "5,stairs", "7,circle_red", "10,letter:B"
         data = []
+        states = ("empty", "wall", "door", "transparentwall")
         for i in self.lines:
-            n = states.index(i.state)
+            # 0 bis 3:
+            n = str(states.index(i.state))
             if i.attachment:
-                if i.attachment.name == "stairs":
-                    n += 10
-                for u in additions.keys():
-                    if i.attachment.name == "circle_" + u:
-                        n += additions[u]
+                n += "," + i.attachment.name
+                if i.attachment.name == "letter":
+                    n += ":" + i.attachment.letter
             data.append(n)
         return data
 
     def pokeInData(self, data, canvas):
         states = ("empty", "wall", "door", "transparentwall")
-        colors = ("red", "green", "blue")
         for i in range(len(self.lines)):
             n = data[i]
-            if n >= 10 and n < 20:
-                self.lines[i].addAttachment("stairs", canvas)
-                n -= 10
-            for u in range(len(colors)):
-                from_ = 20 + 10 * u
-                to_   = from_ + 10
-                if n >= from_ and n < to_:
-                    self.lines[i].addAttachment("circle_" + colors[u], canvas)
-                    n -= from_
-            self.lines[i].setState(states[n])
+            n = n.rstrip(LINESEPARATOR)
+            a = n.split(",")
+            self.lines[i].setState(states[int(a[0])])
+            if len(a) > 1:
+                if "letter" in a[1]:
+                    b = a[1].split(":")
+                    self.lines[i].addAttachment("letter", canvas, b[1])
+                else:
+                    self.lines[i].addAttachment(a[1], canvas, "")
 
 
 class Line:
@@ -183,7 +183,7 @@ class Line:
             self.lparts = ((self.p1, (self.p1[0], self.p1[1] + height // 4)),
                            ((self.p1[0], self.p1[1] + height // 2), (self.p1[0], self.p1[1] + height * 3 // 4)))
 
-    def addAttachment(self, name, canvas):
+    def addAttachment(self, name, canvas, letter):
         if self.orientation == "horizontal":
             return
         if self.lastcolumn:
@@ -194,13 +194,21 @@ class Line:
             self.clearAttachment()
         if name == "stairs":
             self.attachment = Stairs(name, canvas, self)
+        if name == "letter":
+            self.attachment = Letter(name, canvas, self, letter)
         if name.startswith("circle"):
             self.attachment = Circle(name, canvas, self)
 
-    def drawAttachment(self, mode, pildraw):
+    def hasAttachment(self):
+        if self.attachment:
+            return True
+        else:
+            return False
+
+    def drawAttachment(self):
         if not self.attachment:
             return
-        self.attachment.draw(mode, pildraw)
+        self.attachment.draw()
 
     def clearAttachment(self):
         if not self.attachment:
@@ -224,9 +232,9 @@ class Line:
 class Attachment:
 
     def __init__(self, name, canvas, line):
-        self.name = name
+        self.name   = name
         self.canvas = canvas
-        self.line = line
+        self.line   = line
         self.canvasobjects = []
 
     def remove(self):
@@ -238,19 +246,16 @@ class Stairs(Attachment):
     def __init__(self, name, canvas, line):
         Attachment.__init__(self, name, canvas, line)
 
-    def draw(self, mode, pildraw):
+    def draw(self):
         for i in range(0, 501, 250):
             stairs_p1 = (self.line.p1[0] + self.line.board.linesize // 4,
                          self.line.p1[1] + self.line.board.linesize // 4 + i / 1000. * self.line.board.linesize)
             stairs_p2 = (self.line.p1[0] + self.line.board.linesize * 3 // 4,
                          stairs_p1[1])
-            self.createLine(stairs_p1, stairs_p2, mode, pildraw)
+            self.createLine(stairs_p1, stairs_p2)
 
-    def createLine(self, stairs_p1, stairs_p2, mode, pildraw):
-        if mode == "tk":
-            self.canvasobjects.append(self.canvas.create_line(stairs_p1, stairs_p2, width = 2, fill = COLORS["tk"]["stairs"]))
-        else:
-            pildraw.line(xy = (stairs_p1[0], stairs_p1[1], stairs_p2[0], stairs_p2[1]), width = 2, fill = COLORS["pil"]["stairs"])
+    def createLine(self, stairs_p1, stairs_p2):
+        self.canvasobjects.append(self.canvas.create_line(stairs_p1, stairs_p2, width = 2, fill = COLORS["tk"]["stairs"]))
 
 
 class Circle(Attachment):
@@ -258,17 +263,29 @@ class Circle(Attachment):
     def __init__(self, name, canvas, line):
         Attachment.__init__(self, name, canvas, line)
 
-    def draw(self, mode, pildraw):
+    def draw(self):
         circle_p1 = (self.line.p1[0] + self.line.board.linesize // 4,
-                  self.line.p1[1] + self.line.board.linesize // 4)
+                     self.line.p1[1] + self.line.board.linesize // 4)
         circle_p2 = (self.line.p1[0] + self.line.board.linesize * 3 // 4,
-                  self.line.p1[1] + self.line.board.linesize * 3 // 4)
+                     self.line.p1[1] + self.line.board.linesize * 3 // 4)
  
-        if mode == "tk":
-            self.canvasobjects.append(self.canvas.create_oval(circle_p1, circle_p2, width = 3, fill = COLORS["tk"][self.name], outline = COLORS["tk"][self.name]))
-        else:
-            pildraw.ellipse((circle_p1[0], circle_p1[1], circle_p2[0], circle_p2[1]), fill = COLORS["pil"][self.name], outline = COLORS["pil"][self.name])
+        self.canvasobjects.append(self.canvas.create_oval(circle_p1, circle_p2, width = 3, fill = COLORS["tk"][self.name], outline = COLORS["tk"][self.name]))
 
+
+class Letter(Attachment):
+
+    def __init__(self, name, canvas, line, letter):
+        Attachment.__init__(self, name, canvas, line)
+        self.letter = letter
+
+    def draw(self):
+        center = (self.line.p1[0] + self.line.board.linesize // 2,
+                  self.line.p1[1] + self.line.board.linesize // 2)
+
+        self.canvasobjects.append(self.canvas.create_text(center[0], center[1],
+                                                          fill = "black",
+                                                          font = LETTERFONT_TK,
+                                                          text = self.letter))
 
 class Cursor:
 
@@ -279,6 +296,7 @@ class Cursor:
         self.colors       = {"wall"            : "blue",
                              "door"            : COLORS["tk"]["door"],
                              "stairs"          : "blue",
+                             "letter"          : "blue",
                              "transparentwall" : "red",
                              "remove"          : "cyan"}
         
@@ -293,6 +311,7 @@ class Cursor:
                                                     currentline.p2,
                                                     width = self.wallwidth,
                                                     fill = self.colors[drawmode])
+        
     def setOff(self):
         self.canvas.delete(self.canvasobject)
         self.canvasobject = None
@@ -303,7 +322,7 @@ class Main:
     def __init__(self):
 
         self.mw = tk.Tk()
-        self.mw.option_add("*font", FONT)
+        self.mw.option_add("*font", APPLICATIONFONT)
         self.mw.geometry("1200x650+20+0")
         self.mw.title("DungeonDraw")
         self.mw.bind(sequence = "<Control-q>", func = lambda e: self.mw.destroy())
@@ -322,6 +341,8 @@ class Main:
         self.previouscursorlinenr  = None
         self.previousmouseposition = (0, 0)
         self.button_down           = False
+        self.letter                = ""
+        self.lettersused           = False
         self.menubar = tk.Frame(self.mw, relief = tk.RIDGE, bd = 5);
         self.mb_file = tk.Menubutton(self.menubar, text = "File")
         self.mb_draw = tk.Menubutton(self.menubar, text = "Draw")
@@ -368,6 +389,10 @@ class Main:
                                       label = "Circle (Blue)",
                                       command = lambda : self.setDrawMode("circle_blue"))
         self.menu_draw.insert_separator(DRAWENTRIES.index("separator_2"))
+        self.menu_draw.insert_command(DRAWENTRIES.index("letter"),
+                                      label = "Letter",
+                                      command = lambda : self.addLetter())
+        self.menu_draw.insert_separator(DRAWENTRIES.index("separator_3"))
         self.menu_draw.insert_command(DRAWENTRIES.index("remove"),
                                       label = "Remove",
                                       command = lambda : self.setDrawMode("remove"))
@@ -392,6 +417,39 @@ class Main:
         self.cursor = Cursor(self.wallwidth, self.canvas)
         self.mw.mainloop()
 
+    def addLetter(self):
+        self.dialogwindow = tk.Toplevel()
+        self.dialogwindow.title("Which letter?")
+        self.dialogwindow.geometry("+500+250")
+        self.dialoglabel = tk.Label(self.dialogwindow,
+                           text = "Draw which letter?")
+        self.dialoglabel.pack(padx = 50, pady = 5)
+        self.dialogentry = tk.Entry(self.dialogwindow,
+                                    width = 2)
+        self.dialogentry.pack()
+        self.dialogentry.pack(pady = 5)
+        self.dialogentry.bind(sequence = "<Return>", func = lambda e: self.dialogEnd(True))
+        self.dialogentry.bind(sequence = "<Control-q>", func = lambda e: self.dialogEnd(False))
+        self.dialogentry.focus()
+        self.dialogbutton = tk.Button(self.dialogwindow,
+                              text = "Ok",
+                              command = lambda e: self.dialogEnd(True))
+        self.dialogbutton.pack(pady = 10)
+        self.mw.wait_window(self.dialogwindow)
+
+    def dialogEnd(self, get):
+        if get:
+            self.letter = self.dialogentry.get()
+            if self.letter:
+                self.letter = self.letter[0]
+            else:
+                self.letter = ""
+        else:
+            self.letter = ""
+        self.dialogwindow.destroy() 
+        if get:
+            self.setDrawMode("letter")
+
     def setDrawMode(self, drawmode):
         self.drawmode = drawmode
         self.makeMenuEntryBlue()
@@ -412,6 +470,7 @@ class Main:
         if answer == True:
             self.board.clear()
             self.updateBoard()
+            self.lettersused = False
 
     def load(self):
         filename = tkfiledialog.askopenfilename(initialdir = FILEDIR,
@@ -422,13 +481,15 @@ class Main:
             tkmessagebox.showwarning(title = a, message = a)
             """
             return
-        fh = open(filename, "rb")
+        fh = open(filename, "r")
         data = []
-        while True:
-            b = fh.read(1)
-            if not b:
-                break
-            data.append(ord(b))
+        line = True
+        while line:
+            line = fh.readline()
+            if "letter" in line:
+                self.lettersused = True
+            if line:
+                data.append(line)
         fh.close()
         self.board.clear()
         self.board.pokeInData(data, self.canvas)
@@ -451,8 +512,9 @@ class Main:
         if not filename:
             return
         data = self.board.collectData()
-        fh = open(filename, "wb")
-        fh.write(bytearray(data))
+        fh = open(filename, "w")
+        for i in data:
+            fh.write(i + LINESEPARATOR)
         fh.close()
 
     def getOvalCoords(self, line):
@@ -508,9 +570,8 @@ class Main:
         if self.previouscursorlinenr == self.currentline.nr:
             return
         self.cursor.setOff()
-        self.cursor.show(self.currentline, self.drawmode)
+        self.cursor.show(self.currentline, self.drawmode) 
         self.previouscursorlinenr = self.currentline.nr
-
 
     def drawLine(self, line, caller):
 
@@ -518,7 +579,7 @@ class Main:
         if caller != "update":
             self.redrawCursor()
 
-        line.drawAttachment("tk", None)
+        line.drawAttachment()
 
         if line.state == "door":
             ids = []
@@ -547,9 +608,12 @@ class Main:
         if self.drawmode in ("wall", "transparentwall", "door"):
             self.currentline.setState(self.drawmode)
         if self.drawmode == "stairs":
-            self.currentline.addAttachment(self.drawmode, self.canvas)
+            self.currentline.addAttachment(self.drawmode, self.canvas, "")
         if self.drawmode.startswith("circle"):
-            self.currentline.addAttachment(self.drawmode, self.canvas)
+            self.currentline.addAttachment(self.drawmode, self.canvas, "")
+        if self.drawmode.startswith("letter"):
+            self.currentline.addAttachment(self.drawmode, self.canvas, self.letter)
+            self.lettersused = True
         if self.drawmode == "remove":
             self.currentline.setState("empty")
             self.currentline.clearAttachment()
@@ -576,7 +640,7 @@ class Main:
         self.button_down = False
 
     def showInfo(self):
-        m = "DungeonDraw 2.0\nSimplified version.\n\nA small dungeon editor for\ntabletop role-playing games.\n\nCopyright (C) 2022,\nHauke Lubenow\nLicense: GNU GPL, version 3."
+        m = "DungeonDraw 2.2\n\nA small dungeon editor for\ntabletop role-playing games.\nSimplified version.\n\nCopyright (C) 2022,\nHauke Lubenow\nLicense: GNU GPL, version 3."
         tkmessagebox.showinfo(title = "DungeonDraw", message = m)
 
 if __name__ == "__main__":
