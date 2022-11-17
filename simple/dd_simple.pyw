@@ -190,11 +190,12 @@ class Line:
             return
         if self.attachment:
             if self.attachment.name == name:
-                return
+                if self.attachment.name != "letter" or self.attachment.letter == letter:
+                    return
             self.clearAttachment()
         if name == "stairs":
             self.attachment = Stairs(name, canvas, self)
-        if name == "letter":
+        if name == "letter" and letter != "":
             self.attachment = Letter(name, canvas, self, letter)
         if name.startswith("circle"):
             self.attachment = Circle(name, canvas, self)
