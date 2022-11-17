@@ -244,11 +244,12 @@ class Line:
             return
         if self.attachment:
             if self.attachment.name == name:
-                return
+                if self.attachment.name != "letter" or self.attachment.letter == letter:
+                    return
             self.clearAttachment()
         if name == "stairs":
             self.attachment = Stairs(name, canvas, self)
-        if name == "letter":
+        if name == "letter" and letter != "":
             self.attachment = Letter(name, canvas, self, letter)
         if name.startswith("circle"):
             self.attachment = Circle(name, canvas, self)
@@ -724,12 +725,10 @@ class Main:
     def redrawCursor(self):
         if not self.currentline:
             return
-        """ Without these lines, the cursor would unnecessarily be redrawn,
-            if the mouse was moved, but the cursor still remained on the
-            same line.
+        """ Prevent the cursor from being redrawn, until its line has changed.
             The previous drawmode doesn't need to be checked, because
             to set a new drawmode, the cursor has to be moved up to the
-            menu anyway.
+            menu anyway, causing the line to change.
         """
         if self.previouscursorlinenr == self.currentline.nr:
             return
