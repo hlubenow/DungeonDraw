@@ -32,7 +32,6 @@ LETTERFONT_TK   = ("Calibri", 12)
 LETTERFONT_PIL  = ("C:\\Windows\\Fonts\\calibri.ttf", 18)
 
 FILEDIR   = os.getcwd()
-IMAGEFILE = ""
 
 LINESEPARATOR = "\n"
 
