@@ -429,6 +429,7 @@ class Main:
         self.mw = tk.Tk()
         self.mw.option_add("*font", APPLICATIONFONT)
         self.mw.geometry("1200x650+20+0")
+        self.setDefaultTitle()
         self.setWindowTitle("DungeonDraw")
         self.mw.bind(sequence = "<Control-q>", func = lambda e: self.mw.destroy())
         self.mw.bind(sequence = "<w>", func = lambda e: self.setDrawMode("wall"))
@@ -579,6 +580,7 @@ class Main:
             self.board.clear()
             self.board.update()
             self.lettersused = False
+            self.setDefaultTitle()
 
     def load(self):
         filename = tkfiledialog.askopenfilename(initialdir = FILEDIR,
@@ -604,9 +606,15 @@ class Main:
         self.board.update()
         self.setWindowTitle(os.path.basename(filename))
 
+
+    def setDefaultTitle(self):
+        self.setWindowTitle("DungeonDraw")
+
     def setWindowTitle(self, title):
+        """
         if title.endswith(".map"):
             title = title[0:-4]
+        """
         self.mw.title(title)
 
     def getSaveName(self, initdir, filetypes):
