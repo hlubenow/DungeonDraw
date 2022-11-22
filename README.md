@@ -26,10 +26,6 @@ There's also a feature called "FTP Upload". If you have upload access to a FTP s
 which is then automatically uploaded to the given FTP-server. That way, it can be shared quickly with other players.
 The feature uses the Python library `ftplib`, which may already be part of the Python distribution.
 
-- Version 2.1: Prevented the cursor from getting redrawn more often than necessary.
-- To be able to draw letters, the file format for saving maps has changed to lines of texts again.
-- Drawing of letters with PIL needs a font-file. If the file's not found, letters aren't drawn (and there's a warning about it).
-
 License: GNU GPL, version 3.
 
 ![DungeonDraw](https://github.com/hlubenow/DungeonDraw/blob/main/dungeondraw.png)
