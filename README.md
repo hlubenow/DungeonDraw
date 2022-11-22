@@ -7,7 +7,7 @@ Draw your walls and doors on a grid.
 Other symbols, that can be drawn are:
 - "Locked Doors": They have their own symbol now.
 - "Stairs": Select the corresponding option in the menu, put the cursor on a vertical line and press the mouse button. The symbol is drawn into the box to the right of the line.
-- "Transparent walls" as symbols for force fields or other obstacles.
+- "Transparent walls": As symbols for force fields or other obstacles.
 - "Points of interest" (drawn as circles of different colors). Proceed as described for "stairs".
 - "Single letters": When you select the option in the menu, a dialog-window appears, asking for the letter to be drawn. Then again proceed as described for "stairs".
 
