@@ -6,7 +6,7 @@ Draw your walls and doors on a grid.
 
 Other symbols, that can be drawn are:
 - "Stairs": Select the corresponding option in the menu, put the cursor on a vertical line and press the mouse button. The symbol is drawn into the box to the right of the line.
-- "Points of interest" in a dungeon (drawn as circles of different colors). Proceed as with "stairs".
+- "Points of interest" (drawn as circles of different colors). Proceed as described for "stairs".
 - "Transparent walls" as symbols for force fields or other obstacles.
 - "Locked Doors". They also have their own symbol now.
 - "Single letters": When you select the option in the menu, a dialog-window appears, asking for the letter to be drawn.
