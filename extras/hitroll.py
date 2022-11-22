@@ -53,7 +53,7 @@ def getDamagePoints(weaponstring):
 # Main:
 
 if len(sys.argv) < 3:
-    print "\nUsage: hitroll.py [hit dices monster] [armor class player]\n"
+    print("\nUsage: hitroll.py [hit dices monster] [armor class player]\n")
     sys.exit()
 
 hd_inp = int(sys.argv[1])
@@ -63,33 +63,33 @@ hashit = False
 
 hitroll = random.randrange(20) + 1
 
-print
+print()
 
 if hitroll == 1:
-    print "The monster has rolled 1, missing in any case."
+    print("The monster has rolled 1, missing in any case.")
     hashit = False
 
 if hitroll == 20:
-    print "The monster has rolled 20, hitting in any case."
+    print("The monster has rolled 20, hitting in any case.")
     hashit = True
 
 if not hashit:
     needed_roll = getNeededRoll(hd_inp, ac_inp)
-    print "Hit dices monster:   " + str(hd_inp)
-    print "Armor class player:  " + str(ac_inp)
-    print
-    print "The monster needs " + str(needed_roll) +" to hit the player."
-    print "The monster rolls " + str(hitroll) + "."
-    print
+    print("Hit dices monster:   " + str(hd_inp))
+    print("Armor class player:  " + str(ac_inp))
+    print()
+    print("The monster needs " + str(needed_roll) +" to hit the player.")
+    print("The monster rolls " + str(hitroll) + ".")
+    print()
     if hitroll >= needed_roll:
-        print "The monster has hit the player."
+        print("The monster has hit the player.")
         hashit = True
     else:
-        print "The monster has missed."
+        print("The monster has missed.")
         hashit = False
 
 if hashit:
-    print
+    print()
     w = ("sword", "club", "staff")
     for i in w:
         d = getDamagePoints(i)
@@ -99,6 +99,6 @@ if hashit:
         if d > 1:
             s += "s"
         s += " of damage."
-        print s
+        print(s)
 
-print
+print()
