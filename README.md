@@ -15,7 +15,7 @@ Requirements on Windows 10 are "Python 3" from [python.org](https://www.python.o
 ```
 pip install Pillow
 ```
-If you're a Windows 10-user, and you aren't by any means able to install a Python module, there's a simplified version of DungeonDraw in the subfolder `simple`. The file is called `dd_simple.pyw`.
+If you're a Windows 10-user, and you aren't by any means able to install a Python library or module, there's a simplified version of DungeonDraw in the subfolder `simple`, that only requires the Python interpreter and nothing more. The file is called `dd_simple.pyw`.
 
 In the program, available keys are: `w` Draw wall, `d` Draw door, `r` Remove drawings. The color of the cursor shows, in which mode you're in.
 
