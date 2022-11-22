@@ -30,7 +30,7 @@ from PIL import Image, ImageDraw, ImageFont
 if FTP_ENABLED:
     import ftplib
 
-import os
+import os, sys
 
 # ------- Settings: -------
 
@@ -575,7 +575,7 @@ class Main:
                                       command = self.new)
         self.menu_file.insert_command(1,
                                       label = "Open",
-                                      command = self.load)
+                                      command = lambda: self.load(""))
         self.menu_file.insert_command(2,
                                       label = "Save as Data",
                                       command = self.saveAs)
@@ -645,6 +645,7 @@ class Main:
         self.board.buildLines()
         self.board.drawGrid()
         self.cursor = Cursor(self.canvas)
+        self.checkCommandLineForMap()
         self.mw.mainloop()
 
     def addLetter(self):
@@ -703,15 +704,16 @@ class Main:
             self.lettersused = False
             self.setDefaultTitle()
 
-    def load(self):
-        filename = tkfiledialog.askopenfilename(initialdir = FILEDIR,
-                                                filetypes = (("map files","*.map"),))
+    def load(self, filename):
         if not filename:
-            """
-            a = "Nothing loaded."
-            tkmessagebox.showwarning(title = a, message = a)
-            """
-            return
+            filename = tkfiledialog.askopenfilename(initialdir = FILEDIR,
+                                                filetypes = (("map files","*.map"),))
+            if not filename:
+                """
+                a = "Nothing loaded."
+                tkmessagebox.showwarning(title = a, message = a)
+                """
+                return
         fh = open(filename, "r")
         data = []
         line = True
@@ -726,6 +728,16 @@ class Main:
         self.board.pokeInData(data)
         self.board.update()
         self.setWindowTitle(os.path.basename(filename))
+
+    def checkCommandLineForMap(self):
+        filename = ""
+        if len(sys.argv) > 1:
+            filename = sys.argv[1]
+        if not filename.endswith(".map"):
+            return
+        if not os.path.exists(filename):
+            return
+        self.load(filename)
 
     def setDefaultTitle(self):
         self.setWindowTitle("DungeonDraw")
