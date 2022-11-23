@@ -365,35 +365,41 @@ class Stairs(Attachment):
 class Key(Attachment):
 
     def __init__(self, name, line):
+
         Attachment.__init__(self, name, line)
 
-        self.data = ("000111000000000", 
+        self.data = ("000111000000000",
                      "001101100000000",
                      "011000111111111",
                      "011000111111111",
                      "001101100000110",
-                     "000111000000010") 
+                     "000111000000010")
+
+        self.pixelsize = 1.1
 
         self.topleft = (self.line.p1[0] + self.line.board.linesize // 8,
                         self.line.p1[1] + self.line.board.linesize // 3)
 
-    def drawTk(self):
+    def getCoordinates(self):
+        c = []
         x = 0
         y = 0
         xlen = len(self.data[0])
         for i in self.data:
             for u in i:
                 if u == "1":
-                    self.plot(x, y)
+                    x_screen = x * self.pixelsize + self.topleft[0]
+                    y_screen = y * self.pixelsize + self.topleft[1]
+                    c.append((x_screen, y_screen))
                 x += 1
             y += 1
             x -= xlen
+        return c
 
-    def plot(self, x, y):
-        pixelsize = 1.1
-        x = x * pixelsize + self.topleft[0]
-        y = y * pixelsize + self.topleft[1]
-        self.canvasobjects.append(self.canvas.create_rectangle(x, y, x + pixelsize, y + pixelsize, fill = COLORS["tk"]["key"], outline = COLORS["tk"]["key"]))
+    def drawTk(self):
+        c = self.getCoordinates()
+        for i in c:
+            self.canvasobjects.append(self.canvas.create_rectangle(i[0], i[1], i[0] + self.pixelsize, i[1] + self.pixelsize, fill = COLORS["tk"]["key"], outline = COLORS["tk"]["key"]))
 
 
 class Circle(Attachment):
