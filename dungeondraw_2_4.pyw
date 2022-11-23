@@ -649,7 +649,7 @@ class Main:
         self.menu_draw.insert_command(DRAWENTRIES.index("door_locked"),
                                       label = "Locked Door",
                                       command = lambda : self.setDrawMode("door_locked"))
-        self.menu_draw.insert_command(DRAWENTRIES.index("door_locked"),
+        self.menu_draw.insert_command(DRAWENTRIES.index("key"),
                                       label = "Key",
                                       command = lambda : self.setDrawMode("key"))
         self.menu_draw.insert_command(DRAWENTRIES.index("stairs"),
