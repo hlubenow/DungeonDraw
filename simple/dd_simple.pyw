@@ -2,10 +2,8 @@
 # coding: utf-8
 
 """
-    DungeonDraw 2.3 - A small dungeon editor for role-playing games.
+    DungeonDraw 2.4 - A small dungeon editor for role-playing games.
     Copyright (C) 2022 Hauke Lubenow
-
-    Simplified version.
 
     This program is free software: you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published by
@@ -36,21 +34,23 @@ FILEDIR   = os.getcwd()
 LINESEPARATOR = "\n"
 
 COLORS = {"tk"  : {"background"      : "white",
-                   "empty"           : "lightgrey",
-                   "measuring"       : "grey",
-                   "wall"            : "black",
-                   "transparentwall" : "#ff0000",
+                   "circle_blue"     : "#0000c0",
+                   "circle_green"    : "#00c000",
+                   "circle_red"      : "#c00000",
                    "door"            : "brown",
                    "door_locked"     : "#0000c0",
-                   "stairs"          : "black",
+                   "empty"           : "lightgrey",
+                   "key"             : "#0000c0",
                    "letter"          : "black",
-                   "circle_red"      : "#c00000",
-                   "circle_green"    : "#00c000",
-                   "circle_blue"     : "#0000c0"}}
+                   "measuring"       : "grey",
+                   "stairs"          : "black",
+                   "transparentwall" : "#ff0000",
+                   "wall"            : "black"} }
 
 DRAWENTRIES = ("wall",
                "door",
                "door_locked",
+               "key",
                "stairs",
                "transparentwall",
                "separator_1",
@@ -68,10 +68,11 @@ TRANSPARENTWALLWIDTH  = 4
 class Board:
 
     def __init__(self):
-        self.border    = 20
-        self.lines_xnr = 50
-        self.lines_ynr = 25
-        self.linesize  = 22
+        self.border     = 20
+        self.lines_xnr  = 50
+        self.lines_ynr  = 25
+        self.linesize   = 22
+        self.linestates = ("empty", "wall", "door", "door_locked", "key", "transparentwall")
 
     def receiveCanvas(self, canvas):
         self.canvas = canvas
@@ -163,12 +164,11 @@ class Board:
             i.drawTk()
 
     def collectData(self):
-        # Data Format: "0,wall", "5,stairs", "7,circle_red", "10,letter:B"
+        # Data format example: "0,wall", "5,stairs", "7,circle_red", "10,letter:B"
         data = []
-        states = ("empty", "wall", "door", "door_locked", "transparentwall")
         for i in self.lines:
-            # 0 bis 4:
-            n = str(states.index(i.state))
+            # 0 bis 5:
+            n = str(self.linestates.index(i.state))
             if i.attachment:
                 n += "," + i.attachment.name
                 if i.attachment.name == "letter":
@@ -177,12 +177,11 @@ class Board:
         return data
 
     def pokeInData(self, data):
-        states = ("empty", "wall", "door", "door_locked", "transparentwall")
         for i in range(len(self.lines)):
             n = data[i]
             n = n.rstrip(LINESEPARATOR)
             a = n.split(",")
-            self.lines[i].setState(states[int(a[0])])
+            self.lines[i].setState(self.linestates[int(a[0])])
             if len(a) > 1:
                 if "letter" in a[1]:
                     b = a[1].split(":")
@@ -258,6 +257,8 @@ class Line:
             self.clearAttachment()
         if name == "stairs":
             self.attachment = Stairs(name, self)
+        if name == "key":
+            self.attachment = Key(name, self)
         if name == "letter" and letter != "":
             self.attachment = Letter(name, self, letter)
         if name.startswith("circle"):
@@ -361,6 +362,40 @@ class Stairs(Attachment):
             self.canvasobjects.append(self.canvas.create_line(i[0], i[1], width = 2, fill = COLORS["tk"]["stairs"]))
 
 
+class Key(Attachment):
+
+    def __init__(self, name, line):
+        Attachment.__init__(self, name, line)
+
+        self.data = ("000111000000000", 
+                     "001101100000000",
+                     "011000111111111",
+                     "011000111111111",
+                     "001101100000110",
+                     "000111000000010") 
+
+        self.topleft = (self.line.p1[0] + self.line.board.linesize // 8,
+                        self.line.p1[1] + self.line.board.linesize // 3)
+
+    def drawTk(self):
+        x = 0
+        y = 0
+        xlen = len(self.data[0])
+        for i in self.data:
+            for u in i:
+                if u == "1":
+                    self.plot(x, y)
+                x += 1
+            y += 1
+            x -= xlen
+
+    def plot(self, x, y):
+        pixelsize = 1.1
+        x = x * pixelsize + self.topleft[0]
+        y = y * pixelsize + self.topleft[1]
+        self.canvasobjects.append(self.canvas.create_rectangle(x, y, x + pixelsize, y + pixelsize, fill = COLORS["tk"]["key"], outline = COLORS["tk"]["key"]))
+
+
 class Circle(Attachment):
 
     def __init__(self, name, line):
@@ -399,6 +434,7 @@ class Cursor:
         self.colors       = {"wall"            : "blue",
                              "door"            : COLORS["tk"]["door"],
                              "door_locked"     : COLORS["tk"]["door_locked"],
+                             "key"             : COLORS["tk"]["key"],
                              "stairs"          : "blue",
                              "letter"          : "blue",
                              "transparentwall" : "red",
@@ -421,7 +457,6 @@ class Cursor:
         self.canvasobject = None
 
 
-
 class Main:
 
     def __init__(self):
@@ -430,7 +465,6 @@ class Main:
         self.mw.option_add("*font", APPLICATIONFONT)
         self.mw.geometry("1200x650+20+0")
         self.setDefaultTitle()
-        self.setWindowTitle("DungeonDraw")
         self.mw.bind(sequence = "<Control-q>", func = lambda e: self.mw.destroy())
         self.mw.bind(sequence = "<w>", func = lambda e: self.setDrawMode("wall"))
         self.mw.bind(sequence = "<d>", func = lambda e: self.setDrawMode("door"))
@@ -479,6 +513,9 @@ class Main:
         self.menu_draw.insert_command(DRAWENTRIES.index("door_locked"),
                                       label = "Locked Door",
                                       command = lambda : self.setDrawMode("door_locked"))
+        self.menu_draw.insert_command(DRAWENTRIES.index("door_locked"),
+                                      label = "Key",
+                                      command = lambda : self.setDrawMode("key"))
         self.menu_draw.insert_command(DRAWENTRIES.index("stairs"),
                                       label = "Stairs",
                                       command = lambda : self.setDrawMode("stairs"))
@@ -622,10 +659,6 @@ class Main:
         self.setWindowTitle("DungeonDraw")
 
     def setWindowTitle(self, title):
-        """
-        if title.endswith(".map"):
-            title = title[0:-4]
-        """
         self.mw.title(title)
 
     def getSaveName(self, initdir, filetypes):
@@ -677,7 +710,7 @@ class Main:
         # Do this, when mouse is clicked:
         if self.drawmode in ("wall", "transparentwall", "door", "door_locked"):
             self.currentline.setState(self.drawmode)
-        if self.drawmode == "stairs":
+        if self.drawmode in ("stairs", "key"):
             self.currentline.addAttachment(self.drawmode, "")
         if self.drawmode.startswith("circle"):
             self.currentline.addAttachment(self.drawmode, "")
@@ -710,8 +743,7 @@ class Main:
         self.button_down = False
 
     def showInfo(self):
-        m = "DungeonDraw 2.3\n\nA small dungeon editor for\ntabletop role-playing games.\nSimplified version.\nCopyright (C) 2022,\nHauke Lubenow\nLicense: GNU GPL, version 3."
-    
+        m = "DungeonDraw 2.4\n\nA small dungeon editor for\ntabletop role-playing games.\n\nCopyright (C) 2022,\nHauke Lubenow\nLicense: GNU GPL, version 3."
         tkmessagebox.showinfo(title = "DungeonDraw", message = m)
 
 if __name__ == "__main__":
