@@ -509,7 +509,6 @@ class Key(Attachment):
 
     def plot(self, x, y, mode, pildraw):
         pixelsize = 1.1
-        # pixelsize = 5
         x = x * pixelsize + self.topleft[0]
         y = y * pixelsize + self.topleft[1]
         if mode == "tk":
