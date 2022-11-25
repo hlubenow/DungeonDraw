@@ -77,7 +77,8 @@ class Board:
     def receiveCanvas(self, canvas):
         self.canvas = canvas
 
-    def buildLines(self):
+    def buildLines(self, keypixels):
+        self.keypixels = keypixels
         self.lines = []
         nr         = 0
         for y in range(self.lines_ynr):
@@ -258,7 +259,7 @@ class Line:
         if name == "stairs":
             self.attachment = Stairs(name, self)
         if name == "key":
-            self.attachment = Key(name, self)
+            self.attachment = Key(name, self, self.board.keypixels)
         if name == "letter" and letter != "":
             self.attachment = Letter(name, self, letter)
         if name.startswith("circle"):
@@ -364,36 +365,20 @@ class Stairs(Attachment):
 
 class Key(Attachment):
 
-    def __init__(self, name, line):
+    def __init__(self, name, line, keypixels):
 
         Attachment.__init__(self, name, line)
-
-        self.data = ("000111000000000",
-                     "001101100000000",
-                     "011000111111111",
-                     "011000111111111",
-                     "001101100000110",
-                     "000111000000010")
-
-        self.pixelsize = 1.1
-
-        self.topleft = (self.line.p1[0] + self.line.board.linesize // 8,
-                        self.line.p1[1] + self.line.board.linesize // 3)
+        self.keypixels   = keypixels
+        self.pixelsize   = 1.1
+        self.topleft     = (self.line.p1[0] + self.line.board.linesize // 8,
+                            self.line.p1[1] + self.line.board.linesize // 3)
 
     def getCoordinates(self):
+        # Converting the pixeldata to screen coordinates:
         c = []
-        x = 0
-        y = 0
-        xlen = len(self.data[0])
-        for i in self.data:
-            for u in i:
-                if u == "1":
-                    x_screen = x * self.pixelsize + self.topleft[0]
-                    y_screen = y * self.pixelsize + self.topleft[1]
-                    c.append((x_screen, y_screen))
-                x += 1
-            y += 1
-            x -= xlen
+        for i in self.keypixels:
+            c.append((i[0] * self.pixelsize + self.topleft[0],
+                      i[1] * self.pixelsize + self.topleft[1]))
         return c
 
     def drawTk(self):
@@ -563,12 +548,36 @@ class Main:
         self.canvas.bind('<B1-Motion>', self.mouseMovementWithButton)
         self.canvas.bind('<ButtonRelease-1>', self.buttonReleased)
         self.canvas.bind('<Button-1>', self.mouseClick)
+        self.initBitmaps()
         self.board.receiveCanvas(self.canvas)
-        self.board.buildLines()
+        self.board.buildLines(self.keypixels)
         self.board.drawGrid()
         self.cursor = Cursor(self.canvas)
         self.checkCommandLineForMap()
         self.mw.mainloop()
+
+    def initBitmaps(self):
+        # To do this only once. And not every time, a key is drawn:
+        self.keypixels = self.bitmapDataToPixelData(("000111000000000",
+                                                     "001101100000000",
+                                                     "011000111111111",
+                                                     "011000111111111",
+                                                     "001101100000110",
+                                                     "000111000000010"))
+
+    def bitmapDataToPixelData(self, bitmapdata):
+        pixeldata = []
+        x = 0
+        y = 0
+        xlen = len(bitmapdata[0])
+        for i in bitmapdata:
+            for u in i:
+                if u == "1":
+                    pixeldata.append((x, y))
+                x += 1
+            y += 1
+            x -= xlen
+        return pixeldata
 
     def addLetter(self):
         self.dialogwindow = tk.Toplevel()
