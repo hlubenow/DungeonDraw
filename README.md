@@ -1,4 +1,4 @@
-### DungeonDraw 2.4
+### DungeonDraw 2.5
 
 A small dungeon editor in Python/Tkinter for tabletop role-playing games like "Dungeons & Dragons".
 
