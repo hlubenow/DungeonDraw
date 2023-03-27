@@ -3,7 +3,7 @@
 
 """
     DungeonDraw 2.6 - A small dungeon editor for role-playing games.
-    Copyright (C) 2022 Hauke Lubenow
+    Copyright (C) 2022, 2023 Hauke Lubenow
 
     This program is free software: you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published by
@@ -19,26 +19,47 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-FTP_ENABLED = False
-
 import tkinter as tk
 import tkinter.messagebox as tkmessagebox
 import tkinter.filedialog as tkfiledialog
 
 from PIL import Image, ImageDraw, ImageFont
 
-if FTP_ENABLED:
-    import ftplib
-
 import os, sys
+
+# Import of ftplib: See below.
 
 # ------- Settings: -------
 
-# Defines the size and appearance of the application window:
+# 1. Appearance of the application window:
 NROFLINES_X     = 50
 NROFLINES_Y     = 25
 LINESIZE        = 19
 WINDOW_GEOMETRY = "1200x650+0+0"
+
+# 2. Fonts:
+if os.name == "posix":
+    # Linux:
+    APPLICATIONFONT = ("Sans", 18)
+    LETTERFONT_TK   = ("Arial", 18)
+    LETTERFONT_PIL  = ("/usr/share/fonts/truetype/LiberationSans-Regular.ttf",
+                       18)
+else:
+    # Windows:
+    APPLICATIONFONT = ("Calibri", 10)
+    LETTERFONT_TK   = ("Calibri", 12)
+    LETTERFONT_PIL  = ("C:\\Windows\\Fonts\\calibri.ttf", 18)
+
+# 3. Miscellaneous:
+
+DRAW_MEASURING_TAPE_WITH_PIL = False
+
+WALLWIDTH             = 4
+TRANSPARENTWALLWIDTH  = 4
+
+# 4. FTP Settings:
+
+FTP_ENABLED = False
 
 """
 FTP-access-data. Example:
@@ -54,22 +75,10 @@ FTPSERVER    = ""
 FTPDIRECTORY = ""
 FTPLOGIN     = ()
 
-# Fonts and other settings:
-if os.name == "posix":
-    # Linux:
-    APPLICATIONFONT = ("Sans", 18)
-    LETTERFONT_TK   = ("Arial", 18)
-    LETTERFONT_PIL  = ("/usr/share/fonts/truetype/LiberationSans-Regular.ttf",
-                       18)
-else:
-    # Windows:
-    APPLICATIONFONT = ("Calibri", 10)
-    LETTERFONT_TK   = ("Calibri", 12)
-    LETTERFONT_PIL  = ("C:\\Windows\\Fonts\\calibri.ttf", 18)
-
-DRAW_MEASURING_TAPE_WITH_PIL = False
-
 if FTP_ENABLED:
+
+    import ftplib
+
     # Automatically save images to "./saves/dungeon.py".
     FILEDIR   = os.path.join(os.getcwd(), "saves")
     IMAGEFILE = os.path.join(FILEDIR, "dungeon.png")
@@ -125,16 +134,10 @@ DRAWENTRIES = ("wall",
                "separator_3",
                "remove")
 
-WALLWIDTH             = 4
-TRANSPARENTWALLWIDTH  = 4
-
 class Board:
 
     def __init__(self):
         self.border     = 20
-        self.lines_xnr  = NROFLINES_X
-        self.lines_ynr  = NROFLINES_Y
-        self.linesize   = LINESIZE
         self.linestates = ("empty", "wall", "door", "door_locked", "key", "transparentwall")
 
     def receiveCanvas(self, canvas):
@@ -144,21 +147,21 @@ class Board:
         self.keypixels = keypixels
         self.lines     = []
         nr             = 0
-        for y in range(self.lines_ynr):
-            for x in range(self.lines_xnr):
+        for y in range(NROFLINES_Y):
+            for x in range(NROFLINES_X):
                 self.lines.append(Line(nr, x, y, "horizontal", self))
                 nr += 1
                 self.lines.append(Line(nr, x, y, "vertical", self))
                 nr += 1
             # Last column of grid:
-            l = Line(nr, self.lines_xnr, y, "vertical", self)
+            l = Line(nr, NROFLINES_X, y, "vertical", self)
             l.setLast()
             self.lines.append(l)
             nr += 1
 
         # Last row of grid:
-        for x in range(self.lines_xnr):
-            self.lines.append(Line(nr, x, self.lines_ynr, "horizontal", self))
+        for x in range(NROFLINES_X):
+            self.lines.append(Line(nr, x, NROFLINES_Y, "horizontal", self))
             nr += 1
 
     def drawGrid(self):
@@ -174,14 +177,14 @@ class Board:
         boxdivision = 10
         vx = []
         hy = []
-        for i in range(int(self.lines_xnr / boxdivision - 1)):
-            vx.append(self.border + (i + 1) * boxdivision * self.linesize)
-        for i in range(int(self.lines_ynr / boxdivision)):
-            hy.append(canvassize[1] - (self.border + (i + 1) * boxdivision * self.linesize))
-        self.measuringtape = {"horizontal" : {"x" : (self.border, canvassize[0] - self.border - self.linesize),
+        for i in range(int(NROFLINES_X / boxdivision - 1)):
+            vx.append(self.border + (i + 1) * boxdivision * LINESIZE)
+        for i in range(int(NROFLINES_Y / boxdivision)):
+            hy.append(canvassize[1] - (self.border + (i + 1) * boxdivision * LINESIZE))
+        self.measuringtape = {"horizontal" : {"x" : (self.border, canvassize[0] - self.border - LINESIZE),
                                               "y" : hy},
                               "vertical"   : {"x" : vx,
-                                              "y" : (self.border, canvassize[1] - self.border - self.linesize)}}
+                                              "y" : (self.border, canvassize[1] - self.border - LINESIZE)}}
 
     def getClosestLine(self, mouse_x, mouse_y):
         xmin = 10000
@@ -268,8 +271,8 @@ class Line:
         self.attachment = None
         self.lastcolumn = False
         border = self.board.border
-        width  = self.board.linesize
-        height = self.board.linesize
+        width  = LINESIZE
+        height = LINESIZE
         self.p1 = (border + xnr * width, border + ynr * height)
         if self.orientation == "horizontal":
             self.p2 = (self.p1[0] + width, self.p1[1])
@@ -460,9 +463,9 @@ class Stairs(Attachment):
     def getStairCoordinates(self):
         sc = []
         for i in range(0, 501, 250):
-            stairs_p1 = (self.line.p1[0] + self.line.board.linesize // 4,
-                         self.line.p1[1] + self.line.board.linesize // 4 + i / 1000. * self.line.board.linesize)
-            stairs_p2 = (self.line.p1[0] + self.line.board.linesize * 3 // 4,
+            stairs_p1 = (self.line.p1[0] + LINESIZE // 4,
+                         self.line.p1[1] + LINESIZE // 4 + i / 1000. * LINESIZE)
+            stairs_p2 = (self.line.p1[0] + LINESIZE * 3 // 4,
                          stairs_p1[1])
             sc.append((stairs_p1, stairs_p2))
         return sc
@@ -485,8 +488,8 @@ class Key(Attachment):
         Attachment.__init__(self, name, line)
         self.keypixels   = keypixels
         self.pixelsize   = 1.1
-        self.topleft     = (self.line.p1[0] + self.line.board.linesize // 8,
-                            self.line.p1[1] + self.line.board.linesize // 3)
+        self.topleft     = (self.line.p1[0] + LINESIZE // 8,
+                            self.line.p1[1] + LINESIZE // 3)
 
     def getCoordinates(self):
         # Converting the pixeldata to screen coordinates:
@@ -513,10 +516,10 @@ class Circle(Attachment):
         Attachment.__init__(self, name, line)
 
     def getCircleCoordinates(self):
-        return ((self.line.p1[0] + self.line.board.linesize // 4,
-                 self.line.p1[1] + self.line.board.linesize // 4),
-                (self.line.p1[0] + self.line.board.linesize * 3 // 4,
-                 self.line.p1[1] + self.line.board.linesize * 3 // 4))
+        return ((self.line.p1[0] + LINESIZE // 4,
+                 self.line.p1[1] + LINESIZE // 4),
+                (self.line.p1[0] + LINESIZE * 3 // 4,
+                 self.line.p1[1] + LINESIZE * 3 // 4))
  
     def drawTk(self):
         cc = self.getCircleCoordinates()
@@ -534,16 +537,16 @@ class Letter(Attachment):
         self.letter = letter
 
     def drawTk(self):
-        center = (self.line.p1[0] + self.line.board.linesize // 2,
-                  self.line.p1[1] + self.line.board.linesize // 2)
+        center = (self.line.p1[0] + LINESIZE // 2,
+                  self.line.p1[1] + LINESIZE // 2)
         self.canvasobjects.append(self.canvas.create_text(center[0], center[1],
                                                           fill = "black",
                                                           font = LETTERFONT_TK,
                                                           text = self.letter))
 
     def drawPIL(self, pildraw, pilfont):
-        topleft = (self.line.p1[0] + self.line.board.linesize // 3.5,
-                   self.line.p1[1] + self.line.board.linesize // 8)
+        topleft = (self.line.p1[0] + LINESIZE // 3.5,
+                   self.line.p1[1] + LINESIZE // 8)
         pildraw.text(topleft, self.letter, COLORS["pil"][self.name], font = pilfont)
 
 
@@ -594,8 +597,8 @@ class Main:
         self.mw.bind(sequence = "<l>", func = lambda e: self.setDrawMode("door_locked"))
         self.mw.bind(sequence = "<r>", func = lambda e: self.setDrawMode("remove"))
         self.board = Board()
-        self.canvassize            = (2 * self.board.border + self.board.lines_xnr * self.board.linesize,
-                                      2 * self.board.border + self.board.lines_ynr * self.board.linesize)
+        self.canvassize            = (2 * self.board.border + NROFLINES_X * LINESIZE,
+                                      2 * self.board.border + NROFLINES_Y * LINESIZE)
         self.board.setMeasuringTapeCoordinates(self.canvassize)
         self.drawmode              = "wall"
         self.currentline           = None
