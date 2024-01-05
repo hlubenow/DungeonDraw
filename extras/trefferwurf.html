@@ -1,0 +1,169 @@
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="KeyWords" content="Trefferwurf">
+   <meta name="Author" content="hlubenow2 {at-symbol} gmx.net">
+   <title>Trefferwurf</title>
+
+<script type="text/javascript">
+
+/*
+    Trefferwurf 1.0
+
+    Copyright (C) 2024 hlubenow2 {at-symbol} gmx.net
+
+    This program is free software: you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+var BUTTONDELAY = 500;
+var timetracker = Date.now();
+
+function myrandom(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function isin(obj, arr) {
+    for (var i = 0; i < arr.length; i++) {
+        if (arr[i] == obj) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function getNeededRoll(hd_inp, ac_inp) {
+    // Hit rolls don't change for example between level 9 and level 11:
+    let n = [10, 12, 14, 16];
+    let hd_temp = 1;
+    let ac_temp = 9;
+    let needed_roll = 10;
+    while (hd_temp < hd_inp) {
+        if (isin(hd_temp, n) == false && hd_temp < 18) {
+            needed_roll -= 1;
+        }
+        hd_temp += 1;
+    }
+    while (ac_temp > ac_inp) {
+        needed_roll += 1;
+        ac_temp -= 1;
+    }
+    if (needed_roll > 20) {
+        needed_roll = 20;
+    }
+    if (needed_roll < 2) {
+        needed_roll = 2;
+    }
+    return needed_roll;
+}
+
+function getDamagePoints(weapon) {
+    if (weapon == "Schwert") {
+        return myrandom(1, 8);
+    }
+    if (weapon == "Keule") {
+        return myrandom(1, 6);
+    }
+    if (weapon == "Stab") {
+        return myrandom(1, 4);
+    }
+}
+
+function action() {
+    if (Date.now() - timetracker < BUTTONDELAY) {
+        return;
+    }
+    let resultlines = [];
+    let i = 0;
+    let ac_inp = document.getElementById('ac_inp').value;
+    let hd_inp = document.getElementById('hd_inp').value;
+    if (isNaN(ac_inp) || isNaN(hd_inp)) {
+        let textfield = document.getElementById('textfield');
+        textfield.innerHTML = "Fehler: In den Eingabefeldern dürfen nur Zahlen sein.";
+        timetracker = Date.now();
+        return;
+    }
+    let hashit = false;
+    let noway  = false
+    let hitroll = myrandom(1, 20);
+    if (hitroll == 1) {
+        resultlines.push("Das Monster hat eine 1 gewürfelt, und verfehlt daher den Spieler in jedem Fall.");
+        hashit = false;
+        noway  = true;
+    }
+    if (hitroll == 20) {
+        resultlines.push("Das Monster hat eine 20 gewürfelt, und trifft daher den Spieler in jedem Fall.");
+        resultlines.push("");
+        hashit = 1;
+    }
+    if (hashit == false && noway == false) {
+        let needed_roll = getNeededRoll(hd_inp, ac_inp);
+        resultlines.push("Rüstungsklasse Spieler: " + ac_inp.toString() + ". Trefferwürfel Monster: " + hd_inp.toString() + ".");
+        resultlines.push("");
+        resultlines.push("Das Monster muß mindestens eine " + needed_roll.toString() + " würfeln, um den Spieler zu treffen.");
+        resultlines.push("Das Monster würfelt eine " + hitroll.toString() + ".");
+        resultlines.push("");
+        if (hitroll >= needed_roll) {
+            resultlines.push("Das Monster trifft den Spieler:");
+            hashit = true;
+        } else {
+            resultlines.push("Das Monster verfehlt den Spieler.");
+            hashit = false;
+        }
+    }
+    if (hashit == true) {
+        // resultlines.push("");
+        let w = ["Schwert", "Keule", "Stab"];
+        for (let i = 0; i < w.length; i++) {
+            d = getDamagePoints(w[i]);
+            s = "- Mit eine";
+            if (w[i] == "Schwert") {
+                s += "m ";
+            } else {
+                s += "r ";
+            }
+            s += w[i] + " verursacht das Monster "
+            s += d.toString();
+            s += " Punkte Schaden.";
+            resultlines.push(s)
+        }
+    }
+    let resultstring = resultlines.join("\n");
+    let textfield = document.getElementById('textfield');
+    textfield.innerHTML = resultstring;
+    timetracker = Date.now();
+} 
+
+window.addEventListener('load', function() {
+    document.getElementById("action").addEventListener("click", action);
+});
+
+</script>
+</head>
+
+<body>
+<h5>Trefferwurf</h5>
+<textarea id="textfield" name="textfield" style="font-size: 12pt" rows="10" cols="80">
+</textarea>
+<p>
+<form action="javascript:action()">
+  <label for="ac_inp">Rüstungsklasse Spieler</label><br>
+  <input type="text" id="ac_inp" name="ac_inp" value="4"><br>
+  <p>
+  <label for="hd_inp">Trefferwürfel Monster</label><br>
+  <input type="text" id="hd_inp" name="hd_inp" value="2"><br><br>
+  <input type="submit" id="action" value="Action">
+</form> 
+
+</body>
+</html>
