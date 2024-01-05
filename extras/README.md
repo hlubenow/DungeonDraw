@@ -6,6 +6,6 @@ A little script, that checks, if a D&D-monster has hit a player and how much dam
 
 - trefferwurf.html
 
-Same as `hitroll.py`, but in JavaScript, and in German.
+Same as `hitroll.py`, but in JavaScript and in German.
 
 License: GNU GPL, version 3.
