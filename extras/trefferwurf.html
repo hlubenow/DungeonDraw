@@ -79,6 +79,41 @@ function getDamagePoints(weapon) {
     }
 }
 
+function printStuff(s) {
+    let textfield       = document.getElementById('textfield');
+    textfield.innerHTML = s;
+    timetracker = Date.now();
+}
+
+function checkInput(a, b) {
+    let i = 0;
+    let alen = a.length;
+    if (alen == 0) {
+        printStuff("Fehler: Die Eingabefelder dürfen nicht leer sein.");
+        return "error";
+    }
+    let c = "";
+    let ord = 0;
+    for (i = 0; i < alen; i++) {
+        c = a.substr(i, 1);
+        if (i == 0 && b == "hd" && c == "-") {
+            printStuff("Fehler: Die Trefferwürfel des Monsters können nicht negativ sein.");
+            return "error";
+        }
+        if (i != 0 && c == "-") {
+            printStuff("Fehler: Unzulässiges Zeichen in Eingabefeld.");
+            return "error";
+        }
+        ord = c.charCodeAt(0);
+        if (ord < 48 || ord > 57) {
+            if (c != "-") {
+                printStuff("Fehler: Unzulässiges Zeichen in Eingabefeld.");
+                return "error";
+            }
+        }
+    }
+}
+
 function action() {
     if (Date.now() - timetracker < BUTTONDELAY) {
         return;
@@ -87,10 +122,15 @@ function action() {
     let i = 0;
     let ac_inp = document.getElementById('ac_inp').value;
     let hd_inp = document.getElementById('hd_inp').value;
-    if (isNaN(ac_inp) || isNaN(hd_inp)) {
-        let textfield = document.getElementById('textfield');
-        textfield.innerHTML = "Fehler: In den Eingabefeldern dürfen nur Zahlen sein.";
-        timetracker = Date.now();
+    if (checkInput(ac_inp, "ac") == "error" || checkInput(hd_inp, "hd") == "error") {
+        return;
+    }
+    if (Number(ac_inp) > 9 || Number(ac_inp) < -15) {
+        printStuff("Fehler: Rüstungsklasse jenseits von Gut und Böse.");
+        return;
+    }
+    if (Number(hd_inp) < 1 || Number(hd_inp) > 36) {
+        printStuff("Fehler: Trefferwürfel des Monsters außerhalb des zulässigen Bereichs.");
         return;
     }
     let hashit = false;
@@ -127,14 +167,18 @@ function action() {
         for (let i = 0; i < w.length; i++) {
             d = getDamagePoints(w[i]);
             s = "- Mit eine";
-            if (w[i] == "Schwert") {
-                s += "m ";
-            } else {
+            if (w[i] == "Keule") {
                 s += "r ";
+            } else {
+                s += "m ";
             }
             s += w[i] + " verursacht das Monster "
             s += d.toString();
-            s += " Punkte Schaden.";
+            s += " Punkt";
+            if (d > 1) {
+                s += "e";
+            }
+            s += " Schaden.";
             resultlines.push(s)
         }
     }
@@ -162,7 +206,7 @@ window.addEventListener('load', function() {
   <p>
   <label for="hd_inp">Trefferwürfel Monster</label><br>
   <input type="text" id="hd_inp" name="hd_inp" value="2"><br><br>
-  <input type="submit" id="action" value="Action">
+  <input type="submit" id="action" value="Aktion">
 </form> 
 
 </body>
