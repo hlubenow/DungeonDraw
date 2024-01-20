@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="KeyWords" content="dungeondraw, DungeonDraw, Dungeons, Dragons">
+   <meta name="Author" content="Hauke Lubenow">
+   <title>Test</title>
+</head>
+<body>
+<div style="text-indent:500pt;">
+<button type="button" id="new">New</button>
+&nbsp;&nbsp;
+<button type="button" id="load">Load</button>
+&nbsp;&nbsp;
+<button type="button" id="save">Save</button>
+</div>
+<form name="selections">
+<input type="radio" name="selection" id="rb_wall" value="wall"> Wall</input>
+&nbsp;&nbsp;
+<input type="radio" name="selection" id="rb_door" value="door"> Door</input>
+&nbsp;&nbsp;
+<input type="radio" name="selection" id="rb_remove" value="remove"> Remove</input>
+&nbsp;&nbsp;
+<p>
+<canvas id="canvas" width="1000" height="520" style="border:1px solid black"></canvas>
+
+<script>
+/*
+    dungeondraw.html 0.1 - A small dungeon editor for tabletop role-playing games
+                           like "Dungeons & Dragons". Originally in Python/Tkinter.
+                           Now also as a JavaScript-page.
+
+    Copyright (C) 2024 Hauke Lubenow
+
+    This program is free software: you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/ 
+
+const NROFLINES_X     = 50;
+const NROFLINES_Y     = 25;
+const LINESIZE        = 19;
+const WALLWIDTH       = 4;
+const DOORWIDTH       = 4;
+const FILENAME        = "dungeondraw.map";
+
+const COLORS = {background      : "white",
+                door            : "brown",
+                empty           : "lightgrey",
+                measuring       : "grey",
+                wall            : "black" };
+
+const DRAWENTRIES = ["wall", "door", "remove"];
+
+const ID_CANVAS = "canvas";
+
+function chomp(a) {
+    return a.replace(/\n$/gm, '');
+}
+
+class CanvasDrawer {
+
+    constructor(canvas, context) {
+        this.canvas  = canvas;
+        this.context = context;
+    }
+
+    clearCanvas() {
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    drawLine(p1, p2, linewidth, color) {
+        this.context.beginPath();
+        this.context.strokeStyle = color;
+        this.context.lineWidth   = linewidth;
+        this.context.moveTo(p1[0], p1[1]);
+        this.context.lineTo(p2[0], p2[1]);
+        this.context.stroke();
+    }
+
+    drawDoor(p1, p2, orientation, color) {
+        let x;
+        let y;
+        let radiusX;
+        let radiusY;
+        if (orientation == "horizontal") {
+            x = Math.trunc(p1[0] + 0.5 * LINESIZE);
+            y = p1[1];
+            radiusX = Math.trunc(0.5 * LINESIZE) - 1;
+            radiusY = DOORWIDTH;
+        } else {
+            x = p1[0];
+            y = Math.trunc(p1[1] + 0.5 * LINESIZE);
+            radiusX = DOORWIDTH;
+            radiusY = Math.trunc(0.5 * LINESIZE) - 1;
+        }
+        this.context.beginPath();
+        this.context.strokeStyle = color;
+        this.context.lineWidth   = 2;
+        this.context.ellipse(x, y, radiusX, radiusY, Math.PI, 0, 2 * Math.PI);
+        this.context.stroke();
+        this.context.beginPath();
+        this.context.strokeStyle = COLORS.door;
+        this.context.lineWidth   = 1;
+        this.context.moveTo(p1[0], p1[1]);
+        this.context.lineTo(p2[0], p2[1]);
+        this.context.stroke();
+    }
+}
+
+class Board {
+
+    constructor(main) {
+        this.main       = main;
+        this.cd         = this.main.cd;
+        this.border     = 20;
+        this.linestates = ["empty", "wall", "door"];
+    }
+
+    buildLines() {
+        this.lines = [];
+        let nr     = 0;
+        let x;
+        let y;
+        for (y = 0; y < NROFLINES_Y; y++) {
+            for (x = 0; x < NROFLINES_X; x++) {
+                this.lines.push(new Line(nr, x, y, "horizontal", this));
+                nr++;
+                this.lines.push(new Line(nr, x, y, "vertical", this));
+                nr++;
+            }
+            // Last column of grid:
+            let l = new Line(nr, NROFLINES_X, y, "vertical", this);
+            l.setLast();
+            this.lines.push(l);
+            nr++;
+        }
+        // Last row of grid:
+        for (x = 0; x < NROFLINES_X; x++) {
+            this.lines.push(new Line(nr, x, NROFLINES_Y, "horizontal", this));
+            nr++;
+        }
+    }
+
+    drawGrid() {
+        let line;
+        for (line of this.lines) {
+            line.draw();
+        }
+    }
+
+    getClosestLine() {
+        const mouse_x = this.main.mouseposition[0];
+        const mouse_y = this.main.mouseposition[1];
+        let xmin = 10000;
+        let verticallines = [];
+        let line;
+        let dx;
+        let dy;
+        let xminline = null;
+        let yminline = null;
+        for (line of this.lines) {
+            if (line.orientation == "vertical") {
+                if (mouse_y >= line.p1[1] && mouse_y <= line.p2[1]) {
+                    verticallines.push(line);
+                }
+            }
+        }
+        for (line of verticallines) {
+            dx = mouse_x - line.p1[0];
+            if (dx < 0) {
+                dx = dx * (-1);
+            }
+            if (dx < xmin) {
+                xmin = dx;
+                xminline = line;
+            }
+        }
+        let ymin = 10000;
+        let horizontallines = [];
+        for (line of this.lines) {
+            if (line.orientation == "horizontal") {
+                if (mouse_x >= line.p1[0] && mouse_x <= line.p2[0]) {
+                    horizontallines.push(line);
+                }
+            }
+        }
+        for (line of horizontallines) {
+            dy = mouse_y - line.p1[1];
+            if (dy < 0) {
+                dy = dy * (-1);
+            }
+            if (dy < ymin) {
+                ymin = dy;
+                yminline = line;
+            }
+        }
+        if (ymin <= xmin) {
+            // yminline is the horizontal line:
+            return yminline;
+        } else {
+            return xminline;
+        }
+    }
+
+    clear() {
+        let i;
+        for (i of this.lines) {
+            i.setState("empty");
+        }
+    }
+
+    update() {
+        let i;
+        for (i of this.lines) {
+            i.draw();
+        }
+    }
+
+    collectData() {
+        let data = [];
+        let i;
+        for (i of this.lines) {
+            data.push(this.linestates.indexOf(i.state));
+        }
+        return data.join("\n");
+    }
+
+    loadGrid(datastring) {
+        const data = datastring.split("\n");
+        if (data.length != this.lines.length) {
+            console.log("Warning: The textfile should have the same number of lines as the grid, but hasn't.");
+            console.log("Loading aborted.");
+            return;
+        }
+        let line;
+        let x = 0;
+        let n = "";
+        for (line of this.lines) {
+            n = data[x];
+            // n = n.replace(/\n$/gm, '');
+            n = chomp(n);
+            line.setState(this.linestates[n]);
+            x++;
+        }
+        this.update();
+    }
+}
+
+class Line {
+
+    constructor(nr, xnr, ynr, orientation, board) {
+        this.nr          = nr
+        this.board       = board;
+        const border = this.board.border;
+        const width  = LINESIZE;
+        const height = LINESIZE;
+        this.p1 = [border + xnr * width, border + ynr * height];
+        this.orientation = orientation;
+        this.cd          = this.board.cd;
+        this.lastcolumn  = false;
+        this.state         = "empty";
+        this.previousstate = "empty";
+        if (this.orientation == "horizontal") {
+           this.p2 = [this.p1[0] + LINESIZE, this.p1[1]];
+        } else {
+           this.p2 = [this.p1[0], this.p1[1] + LINESIZE];
+        }
+    }
+
+    setState(state) {
+        this.previousstate = this.state;
+        this.state = state;
+    }
+
+    setLast() {
+        this.lastcolumn = true;
+    }
+
+    clear() {
+       console.log(this.previousstate);
+       if (this.previousstate == "door") {
+           this.cd.drawDoor(this.p1, this.p2, this.orientation, "white");
+       } else {
+           this.cd.drawLine(this.p1, this.p2, WALLWIDTH, "white");
+       }
+    }
+
+    draw(linewidth, color) {
+       this.clear();
+       switch (this.state) {
+           case "wall":
+               this.cd.drawLine(this.p1, this.p2, WALLWIDTH, "black");
+               break;
+           case "door":
+               this.cd.drawDoor(this.p1, this.p2, this.orientation, COLORS.door);
+               break;
+           case "empty":
+               this.cd.drawLine(this.p1, this.p2, 1, COLORS.empty);
+               break;
+       }
+    }
+}
+
+class Main {
+
+    constructor() {
+        const radiobtn = document.getElementById("rb_wall");
+        radiobtn.checked = true;
+
+        this.canvas     = document.getElementById(ID_CANVAS);
+        this.context    = this.canvas.getContext("2d");
+        this.canvasrect = this.canvas.getBoundingClientRect();
+        this.cd         = new CanvasDrawer(this.canvas, this.context);
+
+        this.board = new Board(this);
+        this.canvassize = [2 * this.board.border + NROFLINES_X * LINESIZE,
+                           2 * this.board.border + NROFLINES_Y * LINESIZE];
+        this.drawmode              = "wall";
+        this.currentline           = null;
+        this.previouscursorlinenr  = null;
+        this.previousmouseposition = [0, 0];
+
+        this.buttondown            = false;
+        this.mouseposition         = [-1, -1];
+
+        this.board.buildLines();
+        this.board.drawGrid();
+    }
+
+    setMouseButtonState(event) {
+        let flags = event.buttons !== undefined ? event.buttons : event.which;
+        this.buttondown = (flags & 1) === 1;
+    }
+
+    mouseClick() {
+        this.drawmode = document.querySelector('input[name="selection"]:checked').value;
+        switch (this.drawmode) {
+            case "wall":
+                this.currentline.setState("wall");
+                break;
+            case "door":
+                this.currentline.setState("door");
+                break;
+            case "remove":
+                this.currentline.setState("empty");
+                break;
+        }
+        this.currentline.draw();
+    }
+
+    mouseMovement(mouseposition) {
+        this.mouseposition = mouseposition;
+        if (this.mouseposition[0] <= this.board.border || this.mouseposition[0] >= this.canvassize[0] - this.board.border || this.mouseposition[1] <= this.board.border || this.mouseposition[1] >= this.canvassize[1] - this.board.border) { return; }
+        this.currentline = this.board.getClosestLine();
+    }
+
+    mouseMovementWithButton(mouseposition) {
+        this.mouseMovement(mouseposition);
+        if (this.currentline.orientation == this.getMouseDirection(mouseposition)) {
+            this.mouseClick();
+        }
+    }
+
+    getMouseDirection(currentmouseposition) {
+        const d_x = Math.abs(currentmouseposition[0] - this.previousmouseposition[0])
+        const d_y = Math.abs(currentmouseposition[1] - this.previousmouseposition[1])
+        this.previousmouseposition = currentmouseposition;
+        if (d_x > d_y) {
+            return "horizontal";
+        } else {
+            return "vertical";
+        }
+    }
+
+    clearGrid() {
+        this.cd.clearCanvas();
+        this.board.clear();
+        this.board.update();
+    }
+
+    loadGrid() {
+
+        /* Read text file from button.
+           Tricky stuff: Mixture of these two sources:
+           https://stackoverflow.com/questions/13709482/how-to-read-text-file-in-javascript
+           https://codepen.io/udaymanvar/pen/MWaePBY */
+
+        let input = document.createElement('input');
+        input.type = 'file';
+        let textfilestring = "";
+        input.onchange = _ => {
+            if (input.files && input.files.length > 0 && input.files[0]) {
+                let reader = new FileReader(); 
+                reader.onload = function (e) {
+                    textfilestring = e.target.result;
+                    // And finally pass the result:
+                    this.board.loadGrid(textfilestring);
+                };
+                reader.readAsText(input.files[0]); 
+            }
+        };
+        input.click();
+        input.remove();
+    }
+
+    saveGrid() {
+        const griddata = this.board.collectData();
+        const bb = new Blob([griddata ], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.download = FILENAME;
+        a.href = window.URL.createObjectURL(bb);
+        a.click();
+        a.remove();
+    }
+
+    printMousePosition() {
+        console.log(this.mouseposition[0]);
+        console.log(this.mouseposition[1]);
+        console.log("\n");
+    }
+}
+
+function mouseClick(event, main) {
+    main.setMouseButtonState(event);
+    main.mouseClick();
+}
+
+function mouseMovement(event, main) {
+    main.setMouseButtonState(event);
+    if (main.buttondown == true) {
+        main.mouseMovementWithButton([event.clientX - main.canvasrect.left, event.clientY - main.canvasrect.top]);
+    } else {
+        main.mouseMovement([event.clientX - main.canvasrect.left, event.clientY - main.canvasrect.top]);
+    }
+}
+
+function buttonReleased(event, main) {
+    main.setMouseButtonState(event);
+}
+
+function clear(main) {
+    main.clearGrid();
+}
+
+function load(main) {
+
+    /* Read text file from button.
+       Tricky stuff: Mixture of these two sources:
+       https://stackoverflow.com/questions/13709482/how-to-read-text-file-in-javascript
+       https://codepen.io/udaymanvar/pen/MWaePBY */
+
+    let input = document.createElement('input');
+    input.type = 'file';
+    let textfilestring = "";
+    input.onchange = _ => {
+        if (input.files && input.files.length > 0 && input.files[0]) {
+            let reader = new FileReader(); 
+            reader.onload = function (e) {
+                textfilestring = e.target.result;
+                // And finally pass the result:
+                main.board.loadGrid(textfilestring);
+            };
+            reader.readAsText(input.files[0]); 
+        }
+    };
+    input.click();
+    input.remove();
+}
+
+function save(main) {
+    main.saveGrid();
+}
+
+main = new Main();
+
+document.getElementById("canvas").addEventListener("mousedown", function(event) {mouseClick(event, main)});
+document.getElementById("canvas").addEventListener("mousemove", function(event) {mouseMovement(event, main)});
+document.getElementById("canvas").addEventListener("mouseup", function(event) {buttonReleased(event, main)});
+
+document.getElementById("new").addEventListener("click", function(event) {clear(main)});
+document.getElementById("load").addEventListener("click", function(event) {load(main)});
+document.getElementById("save").addEventListener("click", function(event) {save(main)});
+</script>
+</body>
+</html>
