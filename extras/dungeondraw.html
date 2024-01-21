@@ -51,6 +51,7 @@ const NROFLINES_Y     = 25;
 const LINESIZE        = 19;
 const WALLWIDTH       = 4;
 const DOORWIDTH       = 4;
+const CLEARRECTWIDTH  = 12;
 const FILENAME        = "dungeondraw.map";
 
 const COLORS = {background      : "white",
@@ -114,6 +115,26 @@ class CanvasDrawer {
         this.context.moveTo(p1[0], p1[1]);
         this.context.lineTo(p2[0], p2[1]);
         this.context.stroke();
+    }
+
+    drawClearDoor(line) {
+        let x;
+        let y;
+        let width;
+        let height;
+        if (line.orientation == "horizontal") {
+            x = line.p1[0] + 1;
+            y = line.p1[1] - Math.trunc(CLEARRECTWIDTH / 2); 
+            width = LINESIZE - 1;
+            height = CLEARRECTWIDTH;
+        } else {
+            x = line.p1[0] - Math.trunc(CLEARRECTWIDTH / 2); 
+            y = line.p1[1] + 1;
+            width = CLEARRECTWIDTH;
+            height = LINESIZE - 1;
+        }
+        this.context.clearRect(x, y, width, height);
+        this.drawLine(line.p1, line.p2, WALLWIDTH, "white");
     }
 }
 
@@ -287,12 +308,11 @@ class Line {
     }
 
     clear() {
-       console.log(this.previousstate);
-       if (this.previousstate == "door") {
-           this.cd.drawDoor(this.p1, this.p2, this.orientation, "white");
-       } else {
-           this.cd.drawLine(this.p1, this.p2, WALLWIDTH, "white");
-       }
+        if (this.previousstate == "door") {
+            this.cd.drawClearDoor(this);
+        } else {
+            this.cd.drawLine(this.p1, this.p2, WALLWIDTH, "white");
+        }
     }
 
     draw(linewidth, color) {
