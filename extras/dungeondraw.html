@@ -4,9 +4,10 @@
    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
    <meta name="KeyWords" content="dungeondraw, DungeonDraw, Dungeons, Dragons">
    <meta name="Author" content="Hauke Lubenow">
-   <title>Test</title>
+   <title>DungeonDraw</title>
 </head>
 <body>
+
 <div style="text-indent:500pt;">
 <button type="button" id="new">New</button>
 &nbsp;&nbsp;
@@ -14,23 +15,24 @@
 &nbsp;&nbsp;
 <button type="button" id="save">Save</button>
 </div>
+
 <form name="selections">
 <input type="radio" name="selection" id="rb_wall" value="wall"> Wall</input>
 &nbsp;&nbsp;
 <input type="radio" name="selection" id="rb_door" value="door"> Door</input>
 &nbsp;&nbsp;
 <input type="radio" name="selection" id="rb_remove" value="remove"> Remove</input>
-&nbsp;&nbsp;
+
 <p>
 <canvas id="canvas" width="1000" height="520" style="border:1px solid black"></canvas>
-
+<p>
 <script>
 /*
-    dungeondraw.html 0.1 - A small dungeon editor for tabletop role-playing games
-                           like "Dungeons & Dragons". Originally written in Python/Tkinter.
-                           Now also as a JavaScript-page.
+    dungeondraw.html 0.11 - A small dungeon editor for tabletop role-playing games
+                            like "Dungeons & Dragons". Originally written in Python/Tkinter.
+                            Now also as a JavaScript-page.
 
-    Copyright (C) 2024 Hauke Lubenow
+    Copyright (C) 2024, 2026 Hauke Lubenow
 
     This program is free software: you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published by
@@ -180,8 +182,10 @@ class Board {
     }
 
     getClosestLine() {
-        const mouse_x = this.main.mouseposition[0];
-        const mouse_y = this.main.mouseposition[1];
+        /* The pageXYOffset somehow takes care of window-scrolling,
+           but I don't even know, how: */
+        let mouse_x = this.main.mouseposition[0] + window.pageXOffset;
+        let mouse_y = this.main.mouseposition[1] + window.pageYOffset;
         let xmin = 10000;
         let verticallines = [];
         let line;
@@ -253,12 +257,17 @@ class Board {
         for (i of this.lines) {
             data.push(this.linestates.indexOf(i.state));
         }
-        return data.join("\n");
+        // The expression '+ "\n"' gives the file an EOL at the end.
+        // Because the files from the Python-version have that too:
+        return data.join("\n") + "\n";
     }
 
     loadGrid(datastring) {
         const data = datastring.split("\n");
-        if (data.length != this.lines.length) {
+        /* With the "\n" at the end, the split-command generates
+           an empty element at the end. That's why the length of "data"
+           is by one higher than that of "this.lines": */
+        if (data.length != this.lines.length + 1) {
             console.log("Warning: The textfile should have the same number of lines as the grid, but hasn't.");
             console.log("Loading aborted.");
             return;
@@ -266,6 +275,8 @@ class Board {
         let line;
         let x = 0;
         let n = "";
+        // The last element of "data" (which is empty) is just ignored,
+        // because we iterate over "this.lines":
         for (line of this.lines) {
             n = data[x];
             // n = n.replace(/\n$/gm, '');
