@@ -2,7 +2,7 @@
 - dungeondraw.html
 
 A simplified JavaScript-version of the main application. It can just handle 'wall' and 'door' at the moment. It can load and save though. Exchange of .map-files with the Python-version is also possible, as long as the files only contain 'wall' and 'door' (not 'locked door').
-As this is JavaScript, you can run the code directly [on my website](https://hlubenow.lima-city.de/dungeondraw.html).
+As this is JavaScript, the code can be run directly [on my website](https://hlubenow.lima-city.de/dungeondraw.html).
 
 - hitroll.py
 
