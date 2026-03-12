@@ -12,6 +12,6 @@ Same as `hitroll.py`, but in JavaScript and in German.
 
 A simplified JavaScript-version of the main application. Can just handle 'wall' and 'door' at the moment.
 Can load and save though. Exchange of .map-files with the Python-version is also possible, as long as the files only contain 'wall' and 'door' (not 'locked door').
-As this is JavaScript (which is part of webpages), you can just run the code on my website [here](https://hlubenow.lima-city.de/dungeondraw.html).
+As this is JavaScript, you can just run the code on my website [here](https://hlubenow.lima-city.de/dungeondraw.html).
 
 License: GNU GPL, version 3.
