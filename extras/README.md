@@ -1,4 +1,8 @@
 ### Addons / Tools for D&D
+- dungeondraw.html
+
+A simplified JavaScript-version of the main application. It can just handle 'wall' and 'door' at the moment. It can load and save though. Exchange of .map-files with the Python-version is also possible, as long as the files only contain 'wall' and 'door' (not 'locked door').
+As this is JavaScript, you can run the code directly [on my website](https://hlubenow.lima-city.de/dungeondraw.html).
 
 - hitroll.py
 
@@ -7,10 +11,5 @@ A little script, that checks, if a D&D-monster has hit a player and how much dam
 - trefferwurf.html
 
 Same as `hitroll.py`, but in JavaScript and in German.
-
-- dungeondraw.html
-
-A simplified JavaScript-version of the main application. It can just handle 'wall' and 'door' at the moment. It can load and save though. Exchange of .map-files with the Python-version is also possible, as long as the files only contain 'wall' and 'door' (not 'locked door').
-As this is JavaScript, you can run the code directly [on my website](https://hlubenow.lima-city.de/dungeondraw.html).
 
 License: GNU GPL, version 3.
