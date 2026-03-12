@@ -8,4 +8,9 @@ A little script, that checks, if a D&D-monster has hit a player and how much dam
 
 Same as `hitroll.py`, but in JavaScript and in German.
 
+- dungeondraw.html
+
+A simplified JavaScript-version of the main application. Can just handle 'wall' and 'door' at the moment.
+Can load and save though. Exchange of .map-files with the Python-version is also possible, as long as the files only contain 'wall' and 'door' (not 'locked door').
+
 License: GNU GPL, version 3.
